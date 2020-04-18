@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
 import me.excq.androidopengles20demo.BaseActivity
+import me.excq.androidopengles20demo.WebActivity
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.random.Random
@@ -30,6 +31,12 @@ class MainActivity : BaseActivity() {
 //        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
         glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
         glSurfaceView.setOnTouchListener(MyTouch(myRenderer, glSurfaceView))
+
+        isMenu1Enable = false
+    }
+
+    override fun onMenu2Click() {
+        WebActivity.open(this, "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters1");
     }
 
     override fun onResume() {
@@ -42,7 +49,7 @@ class MainActivity : BaseActivity() {
         glSurfaceView.onPause()
     }
 
-    class MyRenderer(
+    private class MyRenderer(
         var r: Float,
         var g: Float,
         var b: Float,
@@ -60,7 +67,7 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    data class MyTouch(var renderer: MyRenderer, var glSurfaceView: GLSurfaceView) : View.OnTouchListener {
+    private class MyTouch(var renderer: MyRenderer, var glSurfaceView: GLSurfaceView) : View.OnTouchListener {
         override fun onTouch(v: View?, event: MotionEvent?): Boolean {
             if (event != null) {
                 when(event.action) {
