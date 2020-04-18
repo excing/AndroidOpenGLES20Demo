@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
 import me.excq.androidopengles20demo.BaseActivity
+import me.excq.androidopengles20demo.WebActivity
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -33,7 +34,10 @@ class MainActivity : BaseActivity() {
         glSurfaceView.setOnTouchListener(MyTouch(myRenderer))
 
         isMenu1Enable = false
-        isMenu2Enable = false
+    }
+
+    override fun onMenu2Click() {
+        WebActivity.open(this, "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters2");
     }
 
     override fun onResume() {
