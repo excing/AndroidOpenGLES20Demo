@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">OpenGL ES 2.0 Demo</string>
+    <string name="string_blog">Blog</string>
+    <string name="string_github">GitHub</string>
+    <string name="string_open_browser">浏览器中打开</string>
+    <string name="string_sure">确定</string>
+
+    <string name="string_preface">OpenGL ES 2.0 的简单用法及函数介绍，适用于 2.0、3.0、3.1、3.2 版本</string>
+</resources>
