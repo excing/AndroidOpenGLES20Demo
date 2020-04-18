@@ -26,7 +26,7 @@ class MainActivity : ListActivity() {
 
             var index = 0
             for (ai in pi.activities) {
-                if (isIgnore(ai.name) && 0 == ai.labelRes) continue
+                if (isIgnore(ai.name) || 0 == ai.labelRes) continue
 
                 activityClasses.put(index++, ai.name)
                 adapter.add(resources.getString(ai.labelRes))
