@@ -32,8 +32,6 @@ class MainActivity : BaseActivity() {
         myRenderer = MyRenderer(1f, 1f, 1f, 1f)
         glSurfaceView.setRenderer(myRenderer)
         glSurfaceView.setOnTouchListener(MyTouch(myRenderer))
-
-        isMenu1Enable = false
     }
 
     override fun onMenu2Click() {

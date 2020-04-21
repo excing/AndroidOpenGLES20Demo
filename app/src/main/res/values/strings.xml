@@ -9,4 +9,5 @@
     <string name="string_chapters1">1、Hello World</string>
     <string name="string_chapters2">2、绘制一个三角形</string>
     <string name="string_chapters3">3、认识着色器</string>
+    <string name="string_chapters4">4、认识 VAO、VBO、EBO</string>
 </resources>

@@ -1,4 +1,4 @@
-package me.excq.androidopengles20demo.chapters3
+package me.excq.androidopengles20demo.chapters4
 
 import android.annotation.SuppressLint
 import android.opengl.GLSurfaceView
@@ -11,7 +11,7 @@ import kotlin.random.Random
 
 class MainActivity : BaseActivity() {
     private lateinit var glSurfaceView: GLSurfaceView
-    private lateinit var myRenderer: GLSurfaceView.Renderer
+    private lateinit var myRenderer: Renderer
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,15 +23,24 @@ class MainActivity : BaseActivity() {
 
         setContentView(glSurfaceView)
 
-        myRenderer = MyRenderer02(1f, 1f, 1f, 1f)
+        myRenderer = MyRenderer04(1f, 1f, 1f, 1f)
         glSurfaceView.setRenderer(myRenderer)
         glSurfaceView.setOnTouchListener(MyTouch(myRenderer as RGBA))
+    }
+
+    override fun getSpinnerData(): Array<String> {
+        return arrayOf(
+            "MyRenderer01",
+            "MyRenderer02",
+            "MyRenderer03",
+            "MyRenderer04"
+        )
     }
 
     override fun onMenu2Click() {
         WebActivity.open(
             this,
-            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters3"
+            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters4"
         );
     }
 
@@ -45,8 +54,19 @@ class MainActivity : BaseActivity() {
         glSurfaceView.onPause()
     }
 
+    override fun onDestroy() {
+        myRenderer.destroy()
+        super.onDestroy()
+    }
+
+    abstract class Renderer : GLSurfaceView.Renderer, RGBA, Destroy
+
     interface RGBA {
         fun updateBackground(r: Float, b: Float, g: Float, a: Float)
+    }
+
+    interface Destroy {
+        fun destroy()
     }
 
     private class MyTouch(

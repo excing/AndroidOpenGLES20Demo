@@ -31,8 +31,6 @@ class MainActivity : BaseActivity() {
 //        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
         glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
         glSurfaceView.setOnTouchListener(MyTouch(myRenderer, glSurfaceView))
-
-        isMenu1Enable = false
     }
 
     override fun onMenu2Click() {

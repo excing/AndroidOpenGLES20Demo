@@ -2,25 +2,25 @@ package me.excq.androidopengles20demo
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
+import android.widget.*
 
 /**
  * 基础 [Activity]
  */
 @SuppressLint("Registered")
-open class BaseActivity : Activity() {
+abstract class BaseActivity : Activity() {
     private lateinit var root: FrameLayout
     private lateinit var logcatView: TextView
+    private lateinit var logcatScroll: ScrollView
     private lateinit var menu1Button: TextView
     private lateinit var menu2Button: TextView
+    private lateinit var spinner: Spinner
 
     override fun setContentView(layoutResID: Int) {
         this.setContentView(LayoutInflater.from(this).inflate(layoutResID, root, false))
@@ -49,10 +49,10 @@ open class BaseActivity : Activity() {
 
     var isLogcatEnable: Boolean
         get() {
-            return View.VISIBLE == logcatView.visibility
+            return View.VISIBLE == logcatScroll.visibility
         }
         set(enable) {
-            logcatView.visibility = if (enable) View.VISIBLE else View.GONE
+            logcatScroll.visibility = if (enable) View.VISIBLE else View.GONE
         }
 
     var isMenu1Enable: Boolean
@@ -79,13 +79,22 @@ open class BaseActivity : Activity() {
         menu2Button.text = text
     }
 
+    var isSpinnerEnable: Boolean
+        get() {
+            return View.VISIBLE == spinner.visibility
+        }
+        set(enable) {
+            spinner.visibility = if (enable) View.VISIBLE else View.GONE
+        }
+
+    protected open fun getSpinnerData(): Array<String> {
+        return arrayOf()
+    }
+
     protected fun logcat(logcat: String, append: Boolean = false) {
         if (append) {
             logcatView.append(
-                """
-                    
-                    $logcat
-                    """.trimIndent()
+                "\n$logcat".trimIndent()
             )
         } else {
             logcatView.text = logcat
@@ -103,24 +112,44 @@ open class BaseActivity : Activity() {
     }
 
     private fun addLogcatView() {
-        logcatView = TextView(this)
         val padding = resources.getDimension(R.dimen.dp_8).toInt()
-        val scroll = ScrollView(this)
-        logcatView.textSize = 12f
+
+        logcatView = TextView(this)
+        logcatView.textSize = 10f
         logcatView.setTextColor(0xddddde)
         logcatView.setPadding(padding, padding, padding, padding)
-        logcatView.setBackgroundColor(0x10000000)
-        scroll.addView(logcatView)
+
+        logcatScroll = ScrollView(this)
+        logcatScroll.setBackgroundColor(0x10000000)
+        logcatScroll.addView(logcatView)
         root.addView(
-            scroll, FrameLayout.LayoutParams(
-                getDimenById(R.dimen.dp_180).toInt(), getDimenById(R.dimen.dp_290).toInt()
+            logcatScroll,
+            FrameLayout.LayoutParams(
+                getDimenById(R.dimen.dp_160).toInt(),
+                getDimenById(R.dimen.dp_200).toInt(),
+                Gravity.BOTTOM
             )
         )
+
         isLogcatEnable = false
     }
 
     private fun addTitleMenu() {
         val title = LinearLayout(this)
+        title.orientation = LinearLayout.HORIZONTAL
+
+        spinner = Spinner(this)
+
+        ArrayAdapter(
+            this, android.R.layout.simple_spinner_item, 0, getSpinnerData()
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            spinner.adapter = adapter
+        }
+
+        // 占位
+        val view = View(this)
+        view.layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
 
         menu1Button = TextView(this)
         menu2Button = TextView(this)
@@ -133,14 +162,14 @@ open class BaseActivity : Activity() {
         menu1Button.textSize = 16f
         menu2Button.textSize = 16f
 
-        // 占位
-        val view = View(this)
-        view.layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
-
-        title.orientation = LinearLayout.HORIZONTAL
+        title.addView(spinner)
         title.addView(view)
         title.addView(menu1Button)
         title.addView(menu2Button)
+
+        isSpinnerEnable = true
+        isMenu1Enable = true
+        isMenu2Enable = true
 
         root.addView(title, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         menu1Button.setOnClickListener { onMenu1Click() }
