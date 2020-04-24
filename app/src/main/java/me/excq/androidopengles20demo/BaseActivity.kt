@@ -103,6 +103,7 @@ abstract class BaseActivity : Activity() {
 
     protected open fun onMenu1Click() {}
     protected open fun onMenu2Click() {}
+    protected open fun onSpinnerClick(position: Int) {}
 
     private fun ensureRoot() {
         root = FrameLayout(this)
@@ -147,6 +148,19 @@ abstract class BaseActivity : Activity() {
             spinner.adapter = adapter
         }
 
+        val l = object : OnSpinnerSelectListener {
+            override fun onSpinnerSelect(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                (::onSpinnerClick)(position)
+            }
+        }
+
+        spinner.onItemSelectedListener = SpinnerSelect(l)
+
         // 占位
         val view = View(this)
         view.layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
@@ -167,12 +181,35 @@ abstract class BaseActivity : Activity() {
         title.addView(menu1Button)
         title.addView(menu2Button)
 
-        isSpinnerEnable = true
-        isMenu1Enable = true
+        isSpinnerEnable = false
+        isMenu1Enable = false
         isMenu2Enable = true
 
         root.addView(title, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         menu1Button.setOnClickListener { onMenu1Click() }
         menu2Button.setOnClickListener { onMenu2Click() }
+    }
+
+    interface OnSpinnerSelectListener {
+        fun onSpinnerSelect(
+            parent: AdapterView<*>?,
+            view: View?,
+            position: Int,
+            id: Long
+        )
+    }
+
+    class SpinnerSelect(var l: OnSpinnerSelectListener) : AdapterView.OnItemSelectedListener {
+        override fun onNothingSelected(parent: AdapterView<*>?) {}
+
+        override fun onItemSelected(
+            parent: AdapterView<*>?,
+            view: View?,
+            position: Int,
+            id: Long
+        ) {
+            l.onSpinnerSelect(parent, view, position, id)
+        }
+
     }
 }

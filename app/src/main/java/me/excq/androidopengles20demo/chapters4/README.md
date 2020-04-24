@@ -158,3 +158,6 @@ override fun onDrawFrame(gl: GL10?) {
 ```
 
 即一次绘制完成，其他代码与之前无异。
+
+> 注：GLSurfaceView 设置 Renderer 后，无法更新，
+> 否则抛出 `setRenderer has already been called for this instance.` 异常

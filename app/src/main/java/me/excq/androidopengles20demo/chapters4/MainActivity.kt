@@ -28,15 +28,6 @@ class MainActivity : BaseActivity() {
         glSurfaceView.setOnTouchListener(MyTouch(myRenderer as RGBA))
     }
 
-    override fun getSpinnerData(): Array<String> {
-        return arrayOf(
-            "MyRenderer01",
-            "MyRenderer02",
-            "MyRenderer03",
-            "MyRenderer04"
-        )
-    }
-
     override fun onMenu2Click() {
         WebActivity.open(
             this,

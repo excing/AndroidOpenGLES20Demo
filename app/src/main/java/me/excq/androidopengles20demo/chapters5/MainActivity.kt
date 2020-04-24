@@ -28,17 +28,11 @@ class MainActivity : BaseActivity() {
         glSurfaceView.setOnTouchListener(MyTouch(myRenderer as RGBA))
     }
 
-    override fun getSpinnerData(): Array<String> {
-        return arrayOf(
-            "MyRenderer01"
-        )
-    }
-
     override fun onMenu2Click() {
         WebActivity.open(
             this,
-            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters4"
-        );
+            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters5"
+        )
     }
 
     override fun onResume() {

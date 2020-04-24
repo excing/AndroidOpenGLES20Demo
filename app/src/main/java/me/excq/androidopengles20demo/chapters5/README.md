@@ -112,5 +112,3 @@ private fun initShader() {
 
 我们把顶点和片段着色器储存为两个叫做 `vertex.glvs` 和 `shader.glfs` 的文件。
 你可以使用自己喜欢的名字命名着色器文件。
-
-todo 明天把切换 Renderer 实现一下，晚安
