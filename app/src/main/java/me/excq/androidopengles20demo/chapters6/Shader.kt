@@ -71,4 +71,8 @@ data class Shader(var vertexStream: InputStream, var fragmentStream: InputStream
     fun getAttribLocation(name: String): Int {
         return GLES20.glGetAttribLocation(programID, name)
     }
+
+    fun getUniformLocation(name: String): Int {
+        return GLES20.glGetUniformLocation(programID, name)
+    }
 }

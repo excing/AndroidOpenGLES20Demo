@@ -200,14 +200,26 @@ GLES20.glTexParameteri(
 使用纹理之前要做的第一件事是把他们加载到我们的应用中。
 
 ```kotlin
+val input: InputStream?
+val bitmap: Bitmap?
 val options = BitmapFactory.Options()
-options.inJustDecodeBounds = true
-val src = BitmapFactory.decodeStream(assets.open("chapters6/container.jpg"), null, options)
-val baos = ByteArrayOutputStream()
-src?.compress(Bitmap.CompressFormat.JPEG, 100, baos)
-val data = baos.toByteArray()
+try {
+    options.inJustDecodeBounds = false
+    options.inPreferredConfig = Bitmap.Config.ARGB_8888
+
+    input = assets.open("chapters6/container.jpg")
+    bitmap = BitmapFactory.decodeStream(input, null, options)
+} catch (e: Exception) {
+    e.printStackTrace()
+    throw e
+}
+
 val width = options.outWidth
 val height = options.outHeight
+val image = ByteBuffer.allocateDirect(width * height * 4)
+    .order(ByteOrder.nativeOrder())
+bitmap?.copyPixelsToBuffer(image)
+image.position(0)
 ```
 
 以上代码会得到储存图片的字节数组，以及图片的宽高，这在后面我们生成纹理的时候会用到。
@@ -218,5 +230,230 @@ val height = options.outHeight
 让我们来创建一个：
 
 ```kotlin
-todo 在此之前，我们先代码整理一下
+textures = IntBuffer.allocate(1)
+GLES20.glGenTextures(1, textures)
 ```
+
+`glGenTextreus` 方法首先需要输入生成纹理的数量，然后把他们储存在第二个参数的 `IntBuffer` 数组中，
+就像其他对象一样，我们需要绑定他，让之后任何纹理的指令都可以配置当前绑定的纹理：
+
+```kotlin
+GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
+```
+
+现在纹理已经绑定了，我们可以使用前面载入的图片数据生成一个纹理了。纹理可以通过 `glTexImage2D` 方法来生成：
+
+```kotlin
+GLES20.glTexImage2D(
+    GLES20.GL_TEXTURE_2D,
+    0,
+    GLES20.GL_RGBA,
+    width,
+    height,
+    0,
+    GLES20.GL_RGBA,
+    GLES20.GL_UNSIGNED_BYTE,
+    image
+)
+GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
+```
+
+函数很大，参数也不少，所以我们一个个地讲：
+
+- 第一个参数指定了纹理目标（Target）。设置为 `GL_TEXTURE_2D` 意味着会生成与当前绑定的纹理对象在同一个目标上的纹理（任何绑定到 `GL_TEXTURE_1D` 和 `GL_TEXTURE_3D` 的纹理不会受到影响）
+- 第二个参数为纹理指定多级渐远纹理的级另，如果你希望单独手动设置每个多级渐远纹理的级别的话。这里我们填0，也就是基本级别。
+- 第三个参数告诉 OpenGL 我们希望把纹理储存为何种格式。我们的图像时是采用 `ARGB_8888` 格式获取时，因此我们也把纹理储存为 `RGBA`。
+- 第四个和第五个参数设置最终的纹理宽度和高度。
+- 第六个参数总是被设为 0（历史遗留问题）。
+- 第七第八个参数定义了源图的格式的数据类型，我们的图像时是采用 `ARGB_8888` 格式获取时，因此我们也把纹理储存为 `RGBA`。
+- 最后一个参数是真正的图像数据。
+
+当调用 `glTexImage2D` 时，当前绑定的纹理对象就会被附加上纹理图像。
+然而，目前只有基本级别（Base-level）的图像被加载了，如果要使用多级渐远纹理，我们必须手动设置所有不同的图像（不断递增第二个参数）。
+或者，直接在生成纹理之后调用 `glGenerateMipmap`。
+这会为当前绑定的强龙不压地头蛇自动生成所有需要的多级渐远纹理。
+
+生成了纹理和相应的多级渐远纹理后，释放图像的内存并解绑纹理对象是一个很好的习惯。
+
+```kotlin
+GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+input.use { i -> i.close() }
+bitmap?.recycle()
+```
+
+> 注意：当使用 `GLES20.glTexImage2D` 方法生成纹理时，
+> 其中 `image` 值必须是通过 `Bitmap.Config.ARGB_8888` 获取的，
+> 即 `options.inPreferredConfig = Bitmap.Config.ARGB_8888`，
+> 不过 `BitmapFactory.Options()` 默认就是 `ARGB_8888`。
+> 通过 `ARGB_8888` 获取的 Bitmap 大小，每个像素是 4 个字节，
+> 因此 `ByteBuffer` 的大小是 `width * height * 4`。
+
+这里推荐使用 `GLUtils` 类的 `texImage2D` 方法生成纹理，这个方法只需要接受一个 `Bitmap` 对象即可，
+并对 `Bitmap` 没有颜色通道要求，可以是 `ARGB_8888`，也可以是 `RGB_565`。具体如下：
+
+```kotlin
+val input: InputStream?
+val bitmap: Bitmap?
+try {
+    input = assets.open("chapters6/container.jpg")
+    bitmap = BitmapFactory.decodeStream(input)
+} catch (e: Exception) {
+    e.printStackTrace()
+    throw e
+}
+
+textures = IntBuffer.allocate(1)
+
+GLES20.glGenTextures(1, textures)
+GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
+
+GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+
+GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+input.use { i -> i.close() }
+bitmap?.recycle()
+```
+
+所以生成一个纹理的过程看起来应该是这样的：
+
+```kotlin
+val Textures = IntBuffer.allocate(1)
+GLES20.glGenTextures(1, textures)
+GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0])
+// 为当前绑定的纹理对象设置环绕、过滤方式
+
+...
+
+// 加载并生成纹理
+val input: InputStream?
+val bitmap: Bitmap?
+try {
+    input = assets.open("chapters6/container.jpg")
+    bitmap = BitmapFactory.decodeStream(input)
+} catch (e: Exception) {
+    e.printStackTrace()
+    throw e
+}
+
+GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+
+GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+input.use { i -> i.close() }
+bitmap?.recycle()
+```
+
+## 应用纹理
+
+后面的这部分我们会使用 `glDrawElements` 绘制一个矩形。
+我们需要告知 OpenGL 如何采样纹理，所以我们必须使用纹理坐标更新顶点数据：
+
+```kotlin
+private val vertex = floatArrayOf(
+    // 坐标           // 纹理坐标
+    0.5f, 0.5f, 0.0f, 1.0f, 1.0f,
+    0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+    -0.5f, 0.5f, 0.0f, 0.0f, 1.0f
+)
+```
+
+由于我们去掉了原有的颜色信息，添加了新的纹理坐标信息，所以我们必须告诉 OpenGL 新的顶点格式：
+
+```kotlin
+GLES20.glVertexAttribPointer(
+    mTextureHandle,
+    2,
+    GLES20.GL_FLOAT,
+    false,
+    20,
+    12
+)
+```
+
+这里我们的两个顶点属性的步长参数是：`5 * 4 = 20` 个字节，一个 `float` 是四字节长度，一个顶点属性有 5 个 float 信息。
+同时，纹理坐标是从第 4 个 float 开始的，因此偏移量是 `3 * 4 = 20` 个字节。
+
+接着我们需要调整顶点着色器使其能够接受纹理坐标，并把纹理坐标传给片段着色器：
+
+```glsl
+attribute vec4 vPosition;
+attribute vec2 vTexCoord;
+
+varying vec2 outTexCoord;
+
+void main() {
+  gl_Position = vPosition;
+  outTexCoord = vTexCoord;
+}
+```
+
+片段着色器应该把输出变量 `outTexCoord` 作为输入变量。
+
+片段着色器也应该能访问纹理对象，但我们怎样能把纹理对象传给片段着色器呢？
+GLSL 有一个供纹理对象使用的内建数据类型，叫做**采样器**（Sampler），他对纹理类型作为后缀，
+比如 `sampler1D`、`sampler3D`，还有在我们的例子中的 `sampler2D`。
+我们可以简单声明一个 `uniform sampler2D` 把一个纹理添加到片段着色器中，稍后我们会把纹理赋值给这个 `uniform`。
+
+```glsl
+precision mediump float;
+
+varying vec2 outTexCoord;
+
+uniform sampler2D ourTexture;
+
+void main() {
+  gl_FragColor = texture2D(ourTexture, outTexCoord);
+}
+```
+
+我们使用 GLSL 内建的 `texture2D` 函数来采样纹理的颜色，他第一个参数是纹理采样器，第二个参数是对应的纹理坐标。
+`texture2D` 函数会使用之前设置的纹理参数对相应的颜色值进行采样。
+这个片段着色器的输出就是纹理的（插值）纹理坐标上的（过滤后的）颜色。
+
+> 注：`texture2D` 是 OpenGL ES 2.0 的函数，ES 3.0 中被 `texture` 函数替代了。
+
+现在只剩下在调用 `glDrawElements` 之前绑定纹理了，他会自动把纹理赋值给片段着色器的采样器：
+
+```kotlin
+GLES20.glEnableVertexAttribArray(mPositionHandle)
+GLES20.glEnableVertexAttribArray(mTextureHandle)
+
+GLES20.glVertexAttribPointer(
+    mPositionHandle,
+    3,
+    GLES20.GL_FLOAT,
+    false,
+    20,
+    0
+)
+
+GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
+GLES20.glUniform1i(mOurTextureHandle, 0)
+GLES20.glVertexAttribPointer(
+    mTextureHandle,
+    2,
+    GLES20.GL_FLOAT,
+    false,
+    20,
+    12
+)
+
+GLES20.glDrawElements(
+    GLES20.GL_TRIANGLES,
+    6,
+    GLES20.GL_UNSIGNED_SHORT,
+    0
+)
+
+GLES20.glDisableVertexAttribArray(mPositionHandle)
+GLES20.glDisableVertexAttribArray(mTextureHandle)
+```
+
+todo 此处应有效果图
+
+如果你的矩形是全黑或全白的，你可以在哪儿做错了什么。
+比如颜色管道参数配置错了，或者绘制时没有绑定纹理，也可能绘制后又解绑纹理了，等等。
+梁君诺对比一下[源码]()。
+todo 缺少源码链接
+
+todo 明天再见

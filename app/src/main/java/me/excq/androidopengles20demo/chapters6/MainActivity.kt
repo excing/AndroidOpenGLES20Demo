@@ -14,21 +14,25 @@ import kotlin.random.Random
 class MainActivity : BaseActivity() {
     private lateinit var glSurfaceView: GLSurfaceView
     private lateinit var rendererProxy: RendererProxy
-    private lateinit var myRenderer: Renderer
+    private lateinit var myRendererList: Array<Renderer>
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         super.onCreate(savedInstanceState)
 
+        myRendererList = arrayOf(
+            MyRenderer01(assets),
+            MyRenderer02()
+        )
+
         glSurfaceView = GLSurfaceView(this)
         glSurfaceView.setEGLContextClientVersion(2)
 
         setContentView(glSurfaceView)
 
-        myRenderer = MyRenderer01(assets)
-        rendererProxy = RendererProxy(myRenderer)
-        glSurfaceView.setOnTouchListener(MyTouch(myRenderer))
+        rendererProxy = RendererProxy(myRendererList[0])
+        glSurfaceView.setOnTouchListener(MyTouch(rendererProxy))
         glSurfaceView.setRenderer(rendererProxy)
 
         isSpinnerEnable = true
@@ -42,11 +46,7 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onSpinnerSelected(position: Int) {
-        when (position) {
-            0 -> myRenderer = MyRenderer01(assets)
-        }
-
-        rendererProxy.renderer = myRenderer
+        rendererProxy.renderer = myRendererList[position]
     }
 
     override fun onMenu2Click() {
@@ -67,7 +67,7 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        myRenderer.destroy()
+        rendererProxy.destroy()
         super.onDestroy()
     }
 
@@ -105,7 +105,7 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    private class RendererProxy(var renderer: GLSurfaceView.Renderer) : GLSurfaceView.Renderer {
+    private class RendererProxy(var renderer: Renderer) : Renderer() {
         override fun onDrawFrame(gl: GL10?) {
             renderer.onDrawFrame(gl)
         }
@@ -116,6 +116,14 @@ class MainActivity : BaseActivity() {
 
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
             renderer.onSurfaceCreated(gl, config)
+        }
+
+        override fun updateBackground(r: Float, b: Float, g: Float, a: Float) {
+            renderer.updateBackground(r, b, g, a)
+        }
+
+        override fun destroy() {
+            renderer.destroy()
         }
 
     }
