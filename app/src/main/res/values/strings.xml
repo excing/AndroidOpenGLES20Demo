@@ -11,4 +11,5 @@
     <string name="string_chapters3">3、认识着色器</string>
     <string name="string_chapters4">4、认识 VAO、VBO、EBO</string>
     <string name="string_chapters5">5、封装着色器</string>
+    <string name="string_chapters6">6、纹理</string>
 </resources>

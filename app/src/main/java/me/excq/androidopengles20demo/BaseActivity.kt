@@ -103,7 +103,7 @@ abstract class BaseActivity : Activity() {
 
     protected open fun onMenu1Click() {}
     protected open fun onMenu2Click() {}
-    protected open fun onSpinnerClick(position: Int) {}
+    protected open fun onSpinnerSelected(position: Int) {}
 
     private fun ensureRoot() {
         root = FrameLayout(this)
@@ -155,7 +155,7 @@ abstract class BaseActivity : Activity() {
                 position: Int,
                 id: Long
             ) {
-                (::onSpinnerClick)(position)
+                (::onSpinnerSelected)(position)
             }
         }
 
