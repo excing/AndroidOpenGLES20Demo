@@ -1,0 +1,11 @@
+attribute vec4 vPosition;
+attribute vec2 vTexCoord;
+
+varying vec2 outTexCoord;
+
+uniform mat4 transform;
+
+void main() {
+  gl_Position = transform * vPosition;
+  outTexCoord = vec2(vTexCoord.x, 1.0 - vTexCoord.y);
+}

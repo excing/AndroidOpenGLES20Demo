@@ -1,4 +1,4 @@
-package me.excq.androidopengles20demo.chapters6
+package me.excq.androidopengles20demo.chapters7
 
 import android.annotation.SuppressLint
 import android.opengl.GLSurfaceView
@@ -22,11 +22,11 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         myRendererList = arrayOf(
-            MyRenderer01(assets),
-            MyRenderer02(assets),
-            MyRenderer03(assets),
-            MyRenderer04(assets),
-            MyRenderer05(assets)
+            MyRenderer01(assets)
+//            MyRenderer02(assets),
+//            MyRenderer03(assets),
+//            MyRenderer04(assets),
+//            MyRenderer05(assets)
         )
 
         glSurfaceView = GLSurfaceView(this)
@@ -43,11 +43,11 @@ class MainActivity : BaseActivity() {
 
     override fun getSpinnerData(): Array<String> {
         return arrayOf(
-            "01",
-            "02",
-            "03",
-            "04",
-            "05"
+            "01"
+//            "02",
+//            "03",
+//            "04",
+//            "05"
         )
     }
 
@@ -58,7 +58,7 @@ class MainActivity : BaseActivity() {
     override fun onMenu2Click() {
         WebActivity.open(
             this,
-            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters6"
+            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters7"
         )
     }
 
