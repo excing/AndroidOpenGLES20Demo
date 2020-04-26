@@ -10,7 +10,14 @@ import java.nio.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class MyRenderer02(
+/**
+ * 从 MyRenderer02 类拷贝而来
+ *
+ * 可与 MyRenderer02 对比阅读
+ *
+ * 添加内容：纹理单元
+ */
+class MyRenderer04(
     private var assets: AssetManager,
     var r: Float = 1f,
     var b: Float = 1f,
@@ -36,7 +43,8 @@ class MyRenderer02(
     private var mPositionHandle: Int = 0
     private var mColorHandle: Int = 0
     private var mTextureHandle: Int = 0
-    private var mOurTextureHandle: Int = 0
+    private var mOurTexture01Handle: Int = 0
+    private var mOurTexture02Handle: Int = 0
 
     private var vertexBuffer: FloatBuffer
     private var indicesBuffer: ShortBuffer
@@ -83,9 +91,6 @@ class MyRenderer02(
         GLES20.glEnableVertexAttribArray(mTextureHandle)
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, boIDs!![0])
-        /**
-         * 顶点属性添加了颜色信息，因此步长变长了
-         */
         GLES20.glVertexAttribPointer(
             mPositionHandle,
             3,
@@ -114,8 +119,14 @@ class MyRenderer02(
             24
         )
 
-        GLES20.glUniform1i(mOurTextureHandle, 0)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
+        GLES20.glUniform1i(mOurTexture01Handle, 0)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![1])
+        GLES20.glUniform1i(mOurTexture02Handle, 1)
 
+        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, boIDs!![1])
         GLES20.glDrawElements(
             GLES20.GL_TRIANGLES,
             6,
@@ -131,14 +142,15 @@ class MyRenderer02(
     private fun initShader() {
         if (!this::shader.isInitialized) {
             shader = Shader(
-                assets.open("chapters6/vertex02.glvs"),
-                assets.open("chapters6/fragment02.glfs")
+                assets.open("chapters6/vertex04.glvs"),
+                assets.open("chapters6/fragment04.glfs")
             )
 
             mPositionHandle = shader.getAttribLocation("vPosition")
             mColorHandle = shader.getAttribLocation("vColor")
             mTextureHandle = shader.getAttribLocation("vTexCoord")
-            mOurTextureHandle = shader.getUniformLocation("ourTexture")
+            mOurTexture01Handle = shader.getUniformLocation("ourTexture01")
+            mOurTexture02Handle = shader.getUniformLocation("ourTexture02")
         }
     }
 
@@ -167,27 +179,32 @@ class MyRenderer02(
 
     private fun initTexture() {
         if (null == textures) {
-            val input: InputStream?
-            val bitmap: Bitmap?
-            try {
-                input = assets.open("chapters6/awesomeface.png")
-                bitmap = BitmapFactory.decodeStream(input)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                throw e
-            }
+            textures = IntBuffer.allocate(2)
+            GLES20.glGenTextures(2, textures)
 
-            textures = IntBuffer.allocate(1)
-            GLES20.glGenTextures(1, textures)
-
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
-            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
-            GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
-
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
-            input.use { i -> i.close() }
-            bitmap?.recycle()
+            createTexture("chapters6/container.jpg", 0)
+            createTexture("chapters6/awesomeface.png", 1)
         }
+    }
+
+    private fun createTexture(path: String, index: Int) {
+        val input: InputStream?
+        val bitmap: Bitmap?
+        try {
+            input = assets.open(path)
+            bitmap = BitmapFactory.decodeStream(input)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![index])
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+        GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+        input.use { i -> i.close() }
+        bitmap?.recycle()
     }
 
     override fun updateBackground(r: Float, b: Float, g: Float, a: Float) {

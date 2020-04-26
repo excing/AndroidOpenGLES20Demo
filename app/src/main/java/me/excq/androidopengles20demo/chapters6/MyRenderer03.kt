@@ -10,7 +10,7 @@ import java.nio.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class MyRenderer02(
+class MyRenderer03(
     private var assets: AssetManager,
     var r: Float = 1f,
     var b: Float = 1f,
@@ -19,22 +19,33 @@ class MyRenderer02(
 ) : MainActivity.Renderer() {
 
     private val vertex = floatArrayOf(
-        // 坐标           // 颜色            // 纹理坐标
-        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-        -0.5f, 0.5f, 0.0f, 0.5f, 0.5f, 0.5f, 0.0f, 1.0f
+        // 坐标           // 纹理坐标
+
+        // 第一个矩形
+        0.8f, 0.8f, 0.0f, 1.0f, 1.0f,
+        0.8f, 0.2f, 0.0f, 1.0f, 0.0f,
+        -0.8f, 0.2f, 0.0f, 0.0f, 0.0f,
+        -0.8f, 0.8f, 0.0f, 0.0f, 1.0f,
+
+        // 第二个矩形
+        0.8f, -0.2f, 0.0f, 1.0f, 1.0f,
+        0.8f, -0.8f, 0.0f, 1.0f, 0.0f,
+        -0.8f, -0.8f, 0.0f, 0.0f, 0.0f,
+        -0.8f, -0.2f, 0.0f, 0.0f, 1.0f
     )
 
     // 顶点绘制顺序
     private val indices = shortArrayOf(
-        0, 1, 2, 0, 2, 3
+        // 第一个矩形
+        0, 1, 2, 0, 2, 3,
+
+        // 第二个矩形
+        4, 5, 6, 4, 6, 7
     )
 
     private lateinit var shader: Shader
 
     private var mPositionHandle: Int = 0
-    private var mColorHandle: Int = 0
     private var mTextureHandle: Int = 0
     private var mOurTextureHandle: Int = 0
 
@@ -79,43 +90,30 @@ class MyRenderer02(
         shader.use()
 
         GLES20.glEnableVertexAttribArray(mPositionHandle)
-        GLES20.glEnableVertexAttribArray(mColorHandle)
         GLES20.glEnableVertexAttribArray(mTextureHandle)
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, boIDs!![0])
-        /**
-         * 顶点属性添加了颜色信息，因此步长变长了
-         */
         GLES20.glVertexAttribPointer(
             mPositionHandle,
             3,
             GLES20.GL_FLOAT,
             false,
-            32,
+            20,
             0
         )
-        GLES20.glVertexAttribPointer(
-            mColorHandle,
-            3,
-            GLES20.GL_FLOAT,
-            false,
-            32,
-            12
-        )
-        /**
-         * 顶点属性添加了颜色信息，因此偏移量发生了变化
-         */
         GLES20.glVertexAttribPointer(
             mTextureHandle,
             2,
             GLES20.GL_FLOAT,
             false,
-            32,
-            24
+            20,
+            12
         )
 
         GLES20.glUniform1i(mOurTextureHandle, 0)
 
+        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, boIDs!![1])
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
         GLES20.glDrawElements(
             GLES20.GL_TRIANGLES,
             6,
@@ -123,20 +121,26 @@ class MyRenderer02(
             0
         )
 
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![1])
+        GLES20.glDrawElements(
+            GLES20.GL_TRIANGLES,
+            6,
+            GLES20.GL_UNSIGNED_SHORT,
+            12
+        )
+
         GLES20.glDisableVertexAttribArray(mPositionHandle)
-        GLES20.glDisableVertexAttribArray(mColorHandle)
         GLES20.glDisableVertexAttribArray(mTextureHandle)
     }
 
     private fun initShader() {
         if (!this::shader.isInitialized) {
             shader = Shader(
-                assets.open("chapters6/vertex02.glvs"),
-                assets.open("chapters6/fragment02.glfs")
+                assets.open("chapters6/vertex.glvs"),
+                assets.open("chapters6/fragment.glfs")
             )
 
             mPositionHandle = shader.getAttribLocation("vPosition")
-            mColorHandle = shader.getAttribLocation("vColor")
             mTextureHandle = shader.getAttribLocation("vTexCoord")
             mOurTextureHandle = shader.getUniformLocation("ourTexture")
         }
@@ -167,27 +171,32 @@ class MyRenderer02(
 
     private fun initTexture() {
         if (null == textures) {
-            val input: InputStream?
-            val bitmap: Bitmap?
-            try {
-                input = assets.open("chapters6/awesomeface.png")
-                bitmap = BitmapFactory.decodeStream(input)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                throw e
-            }
+            textures = IntBuffer.allocate(2)
+            GLES20.glGenTextures(2, textures)
 
-            textures = IntBuffer.allocate(1)
-            GLES20.glGenTextures(1, textures)
-
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
-            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
-            GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
-
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
-            input.use { i -> i.close() }
-            bitmap?.recycle()
+            createTexture("chapters6/container.jpg", 0)
+            createTexture("chapters6/awesomeface.png", 1)
         }
+    }
+
+    private fun createTexture(path: String, index: Int) {
+        val input: InputStream?
+        val bitmap: Bitmap?
+        try {
+            input = assets.open(path)
+            bitmap = BitmapFactory.decodeStream(input)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![index])
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+        GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
+        input.use { i -> i.close() }
+        bitmap?.recycle()
     }
 
     override fun updateBackground(r: Float, b: Float, g: Float, a: Float) {
@@ -202,6 +211,7 @@ class MyRenderer02(
             // 释放缓存
             GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0)
             GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
 
             boIDs = null
             textures = null

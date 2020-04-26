@@ -4,7 +4,6 @@ import android.content.res.AssetManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.opengl.GLES20
-import android.opengl.GLUtils
 import java.io.InputStream
 import java.nio.*
 import javax.microedition.khronos.egl.EGLConfig
@@ -80,6 +79,12 @@ class MyRenderer01(
         GLES20.glEnableVertexAttribArray(mPositionHandle)
         GLES20.glEnableVertexAttribArray(mTextureHandle)
 
+        /**
+         * 当我们使用了多个缓存对象时，操作时就必须指明接下来需要使用的缓存对象，即绑定。
+         * 如果不绑定，使用的缓存对象则是前面绑定的，
+         * MyRenderer02 的所有操作之前没有指定缓存对象，可作反而教材参考。
+         */
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, boIDs!![0])
         GLES20.glVertexAttribPointer(
             mPositionHandle,
             3,
@@ -88,9 +93,6 @@ class MyRenderer01(
             20,
             0
         )
-
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
-        GLES20.glUniform1i(mOurTextureHandle, 0)
         GLES20.glVertexAttribPointer(
             mTextureHandle,
             2,
@@ -100,6 +102,10 @@ class MyRenderer01(
             12
         )
 
+        GLES20.glUniform1i(mOurTextureHandle, 0)
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
+        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, boIDs!![1])
         GLES20.glDrawElements(
             GLES20.GL_TRIANGLES,
             6,
@@ -151,55 +157,88 @@ class MyRenderer01(
         if (null == textures) {
             val input: InputStream?
             val bitmap: Bitmap?
-//            val options = BitmapFactory.Options()
+            val options = BitmapFactory.Options()
             try {
-//                options.inJustDecodeBounds = false
-//                options.inPreferredConfig = Bitmap.Config.ARGB_8888
+                options.inJustDecodeBounds = false
+                /**
+                对图片解码时采用 ARGB_8888 颜色模式，
+                如果使用其他颜色模式，则 OpenGL 纹理显示有异常，
+                此模式只针对 GLES20.glTexImage2D 方法生成的纹理，
+                采用 GLUtils.texImage2D 方法生成的纹理则无需遵守此约定，
+                具体代码可参考 MyRenderer02。
+                 */
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888
 
                 input = assets.open("chapters6/container.jpg")
-                bitmap = BitmapFactory.decodeStream(input)
+                bitmap = BitmapFactory.decodeStream(input, null, options)
             } catch (e: Exception) {
                 e.printStackTrace()
                 throw e
             }
 
-//            val width = options.outWidth
-//            val height = options.outHeight
-//            val image = ByteBuffer.allocateDirect(width * height * 4)
-//                .order(ByteOrder.nativeOrder())
-//            bitmap?.copyPixelsToBuffer(image)
-//            image.position(0)
+            /**
+             * 获取图片的宽高，GLES20.glTexImage2D 方法需要此值
+             */
+            val width = options.outWidth
+            val height = options.outHeight
 
+            /**
+             * 通过 `ARGB_8888` 颜色模式获取的 Bitmap 大小，每个像素是 4 个字节
+             */
+            val image = ByteBuffer.allocateDirect(width * height * 4)
+                .order(ByteOrder.nativeOrder())
+            /**
+             * 将 bitmap 拷贝至 image 字节数组中
+             */
+            bitmap?.copyPixelsToBuffer(image)
+            image.position(0)
+
+            /**
+             * 纹理 ID 列表
+             */
             textures = IntBuffer.allocate(1)
-
+            /**
+             * 生成纹理 ID，第一个参数是需要生成的纹理数量，然后将生成的纹理 ID 列表储存至第二个参数。
+             */
             GLES20.glGenTextures(1, textures)
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
 
-            //设置纹理采样方式
-//            GLES20.glTexParameteri(
-//                GLES20.GL_TEXTURE_2D,
-//                GLES20.GL_TEXTURE_MIN_FILTER,
-//                GLES20.GL_NEAREST
-//            )
-//            GLES20.glTexParameteri(
-//                GLES20.GL_TEXTURE_2D,
-//                GLES20.GL_TEXTURE_MAG_FILTER,
-//                GLES20.GL_NEAREST
-//            )
-            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
-//            GLES20.glTexImage2D(
-//                GLES20.GL_TEXTURE_2D,
-//                0,
-//                GLES20.GL_RGBA,
-//                width,
-//                height,
-//                0,
-//                GLES20.GL_RGBA,
-//                GLES20.GL_UNSIGNED_BYTE,
-//                image
-//            )
+            /**
+             * 绑定纹理，第一个参数是将纹理类型，第二个参数是需要绑定的纹理 ID
+             */
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
+            /**
+             * 生成纹理，此方法与 glBindTexture 搭配使用，
+             * 即生成的纹理与 glBindTexture 方法中的纹理 ID 进行了绑定
+             * 具体用法可参考 MyRenderer03。
+             *
+             * 第一个参数指定了纹理目标（Target）。
+             * 设置为 `GL_TEXTURE_2D` 意味着会生成与当前绑定的纹理对象在同一个目标上的纹理（任何绑定到 `GL_TEXTURE_1D` 和 `GL_TEXTURE_3D` 的纹理不会受到影响）
+             * 第二个参数为纹理指定多级渐远纹理的级另，如果你希望单独手动设置每个多级渐远纹理的级别的话。这里我们填0，也就是基本级别。
+             * 第三个参数告诉 OpenGL 我们希望把纹理储存为何种格式。我们的图像时是采用 `ARGB_8888` 格式获取时，因此我们也把纹理储存为 `RGBA`。
+             * 第四个和第五个参数设置最终的纹理宽度和高度。
+             * 第六个参数总是被设为 0（历史遗留问题）。
+             * 第七第八个参数定义了源图的格式的数据类型，我们的图像时是采用 `ARGB_8888` 格式获取时，因此我们也把纹理储存为 `RGBA`。
+             * 最后一个参数是真正的图像数据。
+             */
+            GLES20.glTexImage2D(
+                GLES20.GL_TEXTURE_2D,
+                0,
+                GLES20.GL_RGBA,
+                width,
+                height,
+                0,
+                GLES20.GL_RGBA,
+                GLES20.GL_UNSIGNED_BYTE,
+                image
+            )
+            /**
+             * 为当前绑定的纹理自动生成所有需要的多级渐远纹理（必要步骤，否则会全黑）。
+             */
             GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
 
+            /**
+             * 生成了纹理和相应的多级渐远纹理后，释放图像的内存并解绑纹理对象。
+             */
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
             input.use { i -> i.close() }
             bitmap?.recycle()
@@ -218,6 +257,7 @@ class MyRenderer01(
             // 释放缓存
             GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0)
             GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0)
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)
 
             boIDs = null
             textures = null

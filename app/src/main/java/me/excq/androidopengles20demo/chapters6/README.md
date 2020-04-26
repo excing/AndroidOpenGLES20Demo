@@ -163,7 +163,7 @@ OpenGL 使用一种叫做**多级渐远纹理**（Mipmap）的概念来解决这
 todo 此处应有图片
 
 手工为每个纹理图像创建一系列多级渐远纹理很麻烦，
-幸好 OpenGL 有一个 `glGenerateMipmaps` 方法，在创建完一个纹理后调用他，OpenGL 就会承担接下来的所有工作了。
+幸好 OpenGL 有一个 `glGenerateMipmap` 方法，在创建完一个纹理后调用他，OpenGL 就会承担接下来的所有工作了。
 
 在渲染中切换多级渐远纹理级别（Level）时，OpenGL 在两个不同级别的多级渐远纹理层之间会产生不真实的生硬边界。
 就像普通的纹理过滤一样，切换多级渐远纹理级别时，你也可以在两个不同多级渐远纹理级别之间使用 `NEAREST` 和 `LINEAR` 过滤。
@@ -234,7 +234,7 @@ textures = IntBuffer.allocate(1)
 GLES20.glGenTextures(1, textures)
 ```
 
-`glGenTextreus` 方法首先需要输入生成纹理的数量，然后把他们储存在第二个参数的 `IntBuffer` 数组中，
+`glGenTextures` 方法首先需要输入生成纹理的数量，然后把他们储存在第二个参数的 `IntBuffer` 数组中，
 就像其他对象一样，我们需要绑定他，让之后任何纹理的指令都可以配置当前绑定的纹理：
 
 ```kotlin
@@ -270,8 +270,7 @@ GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D)
 
 当调用 `glTexImage2D` 时，当前绑定的纹理对象就会被附加上纹理图像。
 然而，目前只有基本级别（Base-level）的图像被加载了，如果要使用多级渐远纹理，我们必须手动设置所有不同的图像（不断递增第二个参数）。
-或者，直接在生成纹理之后调用 `glGenerateMipmap`。
-这会为当前绑定的强龙不压地头蛇自动生成所有需要的多级渐远纹理。
+或者，直接在生成纹理之后调用 `glGenerateMipmap`，这会为当前绑定的纹理自动生成所有需要的多级渐远纹理。
 
 生成了纹理和相应的多级渐远纹理后，释放图像的内存并解绑纹理对象是一个很好的习惯。
 
@@ -289,7 +288,7 @@ bitmap?.recycle()
 > 因此 `ByteBuffer` 的大小是 `width * height * 4`。
 
 这里推荐使用 `GLUtils` 类的 `texImage2D` 方法生成纹理，这个方法只需要接受一个 `Bitmap` 对象即可，
-并对 `Bitmap` 没有颜色通道要求，可以是 `ARGB_8888`，也可以是 `RGB_565`。具体如下：
+并对 `Bitmap` 没有颜色模式要求，可以是 `ARGB_8888`，也可以是 `RGB_565`。具体如下：
 
 ```kotlin
 val input: InputStream?
@@ -451,9 +450,131 @@ GLES20.glDisableVertexAttribArray(mTextureHandle)
 
 todo 此处应有效果图
 
-如果你的矩形是全黑或全白的，你可以在哪儿做错了什么。
-比如颜色管道参数配置错了，或者绘制时没有绑定纹理，也可能绘制后又解绑纹理了，等等。
-梁君诺对比一下[源码]()。
-todo 缺少源码链接
+如果你的矩形是全黑或全白的，你可能在哪儿做错了什么。
+比如颜色模式参数配置错了，或者绘制时没有绑定纹理，也可能绘制后又解绑纹理了、没有调用 `glGenerateMipmap` 方法，等等。
+对比一下[源码](https://github.com/excing/AndroidOpenGLES20Demo/blob/master/app/src/main/java/me/excq/androidopengles20demo/chapters6/MyRenderer01.kt)发现问题。
 
-todo 明天再见
+> 总结一下，OpenGL 在所有操作之前，必须明确指定操作对象，即配对，否则会出现异常。
+
+我们还可以把得到的纹理颜色与顶点颜色混合，来获得更有趣的效果。
+我们只需要把纹理颜色与顶点颜色在片段着色器中相乘来混合二者的颜色：
+
+```glsl
+gl_FragColor = texture2D(ourTexture, outTexCoord) * outColor;
+```
+
+最终的效果应该是顶点颜色和纹理颜色的混合色：
+
+todo 此处应有效果图
+
+参考代码：
+
+- 顶点着色器：[vertex02.glvs](https://github.com/excing/AndroidOpenGLES20Demo/blob/master/app/src/main/assets/chapters6/vertex02.glvs)
+- 片段着色器：[fragment02.glfs](https://github.com/excing/AndroidOpenGLES20Demo/blob/master/app/src/main/assets/chapters6/fragment.glfs)
+- kotlin 代码：[MyRenderer02](https://github.com/excing/AndroidOpenGLES20Demo/blob/master/app/src/main/java/me/excq/androidopengles20demo/chapters6/MyRenderer02.kt)
+
+## 纹理单元
+
+你可能会奇怪为什么 `sampler2D` 变量是个 uniform，我们为什么要使用 `glUniform1i` 给他赋值。
+使用 `glUniform1i`，我们可以给纹理采样器分配一个位置值 ，这样的话我们能够在一个片段着色器设置多个纹理。
+通过把纹理单元赋值给采样器，我们可以一次绑定多个纹理，只要我们首先激活对应的纹理单元。
+就像 `glBindTexture` 一样，我们可以使用 `glActiveTexture` 激活纹理单元，传入我们需要使用的纹理单元：
+
+```kotlin
+GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
+```
+
+激活纹理单元之后，接下来的 `glDindTexture` 函数调用会绑定这个纹理到当前激活的纹理单。
+纹理单元 `GL_TEXTURE0` 默认被激活，所以我们在前面的例子里，当我们使用 `glBindTexture` 的时候，无需激活任何纹理单元。
+
+> OpenGL 至少保证有 16 个纹理单元供你使用，也就是说你可以激活从 `GL_TEXTURE0` 到 `GL_TEXTURE15`。
+> 他们都是按顺序定义的，所以我们也可以通过 `GL_TEXTURE0 + 8` 的方式获得 `GL_TEXTURE8`，
+> 这在我们需要循环一些纹理单元的时候会很有用。
+
+我们仍然需要编辑片段着色器来接收另一个采样器。这应用相对来说非常直接了：
+
+```glsl
+precision mediump float;
+
+varying vec4 outColor;
+varying vec2 outTexCoord;
+
+uniform sampler2D ourTexture01;
+uniform sampler2D ourTexture02;
+
+void main() {
+  vec4 texColor01 = texture2D(ourTexture01, outTexCoord);
+  vec4 texColor02 = texture2D(ourTexture02, outTexCoord);
+  gl_FragColor = mix(texColor01, texColor02, 0.3) * outColor;
+}
+```
+
+最终输出颜色是两个纹理的结合，并与颜色的混合。
+GLSL 内建的 `mix` 函数需要接受两个值作为参数，并对他们根据第三个参数进行线性插值。
+如果第三个值是 `0.0`，他会返回第一个输入；如果是 `1.0`，他会返回第二个输入值。
+`0.2` 会返回 `80%` 的第一个输入颜色和 `20%` 的第二个输入颜色，即返回两个纹理的混合色。
+
+我们现在需要载入并创建另一个纹理：
+创建一个纹理对象，载入图片，使用 `glTexImage2D` 生成最终纹理。
+
+为了使用第二个纹理（以及第一个），我们必须改变一下渲染流程，先绑定两个纹理到对应的纹理单元，
+然后定义哪个 uniform 采样器对应哪个纹理单元：
+
+```kotlin
+GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
+GLES20.glUniform1i(mOurTexture01Handle, 0)
+
+GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
+GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![1])
+GLES20.glUniform1i(mOurTexture02Handle, 1)
+```
+
+注意，我们使用 `glUniform1i` 设置 uniform 采样器的位置值，或者说纹理单元。
+通过 `glUniform1i` 的设置，我们保证每个 uniform 采样器对应着正确的纹理单元。
+
+todo 此处应有效果图
+
+你可以注意到纹理上下颠倒了！
+这是因为 OpenGL 要求 y 轴 `0.0` 坐标是在图片的底部，但是图片的 y 轴 `0.0` 坐标通常在顶部。
+一些图片加载器在加载的时候有选项重置 y 原点。
+如果没有，我们有两个选择：
+
+1. 我们可以改变顶点数据的纹理坐标，翻转 `y` 值（用 1 减去 y 坐标）。
+2. 我们可以编辑顶点着色器来自动翻转 `y` 坐标，替换 `outTexCoord` 的值为 `TexCoord = vec2(texCoord.x, 1.0f - texCoord.y);`
+
+如果采用第二个方法，那么片段着色器应该如下：
+
+```glsl
+precision mediump float;
+
+varying vec4 outColor;
+varying vec2 outTexCoord;
+
+uniform sampler2D ourTexture01;
+uniform sampler2D ourTexture02;
+
+void main() {
+  vec2 texCoord = vec2(outTexCoord.x, 1.0 - outTexCoord.y);
+  vec4 texColor01 = texture2D(ourTexture01, texCoord);
+  vec4 texColor02 = texture2D(ourTexture02, texCoord);
+  gl_FragColor = mix(texColor01, texColor02, 0.3) * outColor;
+}
+```
+
+通过在顶点着色器中翻转了纵坐标，你会得到下面的结果：
+
+todo 此处应有效果图
+
+> 我们可以看到，MyRenderer02、MyRenderer03 的效果不是我们希望的，
+> 是因为，MyRenderer04 中使用了 `glActiveTexture` 方法改变了当前纹理单元导致的。
+> 下面我们通过 MyRenderer05 来总结一下纹理。
+
+## 总结（MyRenderer05）
+
+实现了前面介绍的纹理环绕方和纹理过滤方式，具体可运行程序查看，或查看[源码](https://github.com/excing/AndroidOpenGLES20Demo/blob/master/app/src/main/java/me/excq/androidopengles20demo/chapters6/MyRenderer05.kt)
+
+---------
+
+以上内容主要来自 [LearnOpenGL CN](https://learnopengl-cn.github.io//) 网站教程。

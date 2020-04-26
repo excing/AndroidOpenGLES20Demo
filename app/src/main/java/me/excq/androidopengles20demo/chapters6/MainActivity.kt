@@ -23,7 +23,10 @@ class MainActivity : BaseActivity() {
 
         myRendererList = arrayOf(
             MyRenderer01(assets),
-            MyRenderer02()
+            MyRenderer02(assets),
+            MyRenderer03(assets),
+            MyRenderer04(assets),
+            MyRenderer05(assets)
         )
 
         glSurfaceView = GLSurfaceView(this)
@@ -41,7 +44,10 @@ class MainActivity : BaseActivity() {
     override fun getSpinnerData(): Array<String> {
         return arrayOf(
             "01",
-            "02"
+            "02",
+            "03",
+            "04",
+            "05"
         )
     }
 
@@ -68,6 +74,7 @@ class MainActivity : BaseActivity() {
 
     override fun onDestroy() {
         rendererProxy.destroy()
+        myRendererList.all { renderer -> renderer.destroy(); true }
         super.onDestroy()
     }
 

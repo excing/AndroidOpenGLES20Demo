@@ -377,3 +377,7 @@ GLES20.glVertexAttribPointer(
 ```
 
 前两段，设置顶点位置，后两段，设置顶点颜色，其中 `12` 就是第一个颜色值所处缓存中的偏移量。
+
+---------
+
+以上内容主要来自 [LearnOpenGL CN](https://learnopengl-cn.github.io//) 网站教程。
