@@ -1,4 +1,4 @@
-package me.excq.androidopengles20demo.chapters7
+package me.excq.androidopengles20demo.chapters8
 
 import android.annotation.SuppressLint
 import android.opengl.GLSurfaceView
@@ -22,10 +22,10 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         myRendererList = arrayOf(
-            MyRenderer01(assets)
-//            MyRenderer02(assets),
-//            MyRenderer03(assets),
-//            MyRenderer04(assets),
+            MyRenderer01(assets),
+            MyRenderer02(assets),
+            MyRenderer03(assets),
+            MyRenderer04(assets)
 //            MyRenderer05(assets)
         )
 
@@ -43,22 +43,23 @@ class MainActivity : BaseActivity() {
 
     override fun getSpinnerData(): Array<String> {
         return arrayOf(
-            "01"
-//            "02",
-//            "03",
-//            "04",
+            "01",
+            "02",
+            "03",
+            "04"
 //            "05"
         )
     }
 
     override fun onSpinnerSelected(position: Int) {
         rendererProxy.renderer = myRendererList[position]
+        rendererProxy.updateSurfaceIfChanged()
     }
 
     override fun onMenu2Click() {
         WebActivity.open(
             this,
-            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters7"
+            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters8"
         )
     }
 
@@ -113,11 +114,20 @@ class MainActivity : BaseActivity() {
     }
 
     private class RendererProxy(var renderer: Renderer) : Renderer() {
+        private var width = 0
+        private var height = 0
+
+        fun updateSurfaceIfChanged() {
+            renderer.onSurfaceChanged(null, width, height)
+        }
+
         override fun onDrawFrame(gl: GL10?) {
             renderer.onDrawFrame(gl)
         }
 
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+            this.width = width
+            this.height = height
             renderer.onSurfaceChanged(gl, width, height)
         }
 

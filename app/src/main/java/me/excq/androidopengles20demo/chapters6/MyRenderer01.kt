@@ -71,7 +71,7 @@ class MyRenderer01(
         initBuffer()
         initTexture()
 
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         GLES20.glClearColor(r, b, g, a)
 
         shader.use()

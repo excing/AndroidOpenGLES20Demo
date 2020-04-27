@@ -119,7 +119,7 @@ class MyRenderer05(
         initBuffer()
         initTexture()
 
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         GLES20.glClearColor(r, b, g, a)
 
         shader.use()
@@ -149,7 +149,7 @@ class MyRenderer05(
          * 这里与 MyRenderer03 不同，这是新增的代码。
          * 表示当前使用的是是第一个纹理单元。
          * 未指定时，则会使用上次指定的纹理单元，
-         * 绍在 MyRenderer04 中，与 GL_TEXTURE0 绑定的纹理只有一张图片，
+         * 在 MyRenderer04 中，与 GL_TEXTURE0 绑定的纹理只有一张图片，
          * 因此先进入 MyRenderer04 界面，再进入 MyRenderer03 界面，
          * 就会出现两个矩形都是一张图片的情况。
          */

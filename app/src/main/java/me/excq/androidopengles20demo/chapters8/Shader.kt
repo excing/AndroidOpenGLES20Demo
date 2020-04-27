@@ -1,4 +1,4 @@
-package me.excq.androidopengles20demo.chapters7
+package me.excq.androidopengles20demo.chapters8
 
 import android.opengl.GLES20
 import java.io.InputStream

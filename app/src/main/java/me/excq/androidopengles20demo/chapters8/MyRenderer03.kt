@@ -15,11 +15,11 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 /**
- * 拷贝自 chapters8#MyRenderer01
+ * 拷贝自 chapters8#MyRenderer02
  *
- * 立方体旋转
+ * 深度测试
  */
-class MyRenderer02(
+class MyRenderer03(
     private var assets: AssetManager,
     var r: Float = 1f,
     var b: Float = 1f,
@@ -29,11 +29,6 @@ class MyRenderer02(
 
     private val vertex = floatArrayOf(
         // 坐标            // 纹理坐标
-        0.5f, 0.5f, 0.0f, 1.0f, 1.0f,
-        0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
-
         -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
         0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
         0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
@@ -77,10 +72,6 @@ class MyRenderer02(
         -0.5f, 0.5f, -0.5f, 0.0f, 1.0f
     )
 
-//    private val indices = shortArrayOf(
-//        0, 1, 2, 0, 2, 3
-//    )
-
     private lateinit var shader: Shader
 
     private var mPositionHandle: Int = -1
@@ -92,7 +83,6 @@ class MyRenderer02(
     private var mProjectionHandle: Int = -1
 
     private var vertexBuffer: FloatBuffer
-//    private var indicesBuffer: ShortBuffer
 
     /**
      * 旋转角度
@@ -112,12 +102,6 @@ class MyRenderer02(
             .asFloatBuffer()
         vertexBuffer.put(vertex)
         vertexBuffer.position(0)
-
-//        indicesBuffer = ByteBuffer.allocateDirect(indices.size * 2)
-//            .order(ByteOrder.nativeOrder())
-//            .asShortBuffer()
-//        indicesBuffer.put(indices)
-//        indicesBuffer.position(0)
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
@@ -138,7 +122,8 @@ class MyRenderer02(
         initBuffer()
         initTexture()
 
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST)
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
         GLES20.glClearColor(r, g, b, a)
 
         shader.use()
@@ -177,16 +162,9 @@ class MyRenderer02(
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
         GLES20.glDrawArrays(
             GLES20.GL_TRIANGLES,
-            4, // 从第四个顶点数据开始，因为前面 4 个顶点数据是 MyRenderer01 的顶点数据，此处未删除，如果删除了，应填 0
+            0,
             36
         )
-//        GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, boIDs!![1])
-//        GLES20.glDrawElements(
-//            GLES20.GL_TRIANGLES,
-//            6,
-//            GLES20.GL_UNSIGNED_SHORT,
-//            0
-//        )
 
         GLES20.glDisableVertexAttribArray(mPositionHandle)
         GLES20.glDisableVertexAttribArray(mTextureHandle)
@@ -211,8 +189,8 @@ class MyRenderer02(
 
     private fun initBuffer() {
         if (null == boIDs) {
-            boIDs = IntBuffer.allocate(2)
-            GLES20.glGenBuffers(2, boIDs)
+            boIDs = IntBuffer.allocate(1)
+            GLES20.glGenBuffers(1, boIDs)
 
             GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, boIDs!![0])
             GLES20.glBufferData(
@@ -221,14 +199,6 @@ class MyRenderer02(
                 vertexBuffer,
                 GLES20.GL_STATIC_DRAW
             )
-
-//            GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, boIDs!![1])
-//            GLES20.glBufferData(
-//                GLES20.GL_ELEMENT_ARRAY_BUFFER,
-//                indices.size * 2,
-//                indicesBuffer,
-//                GLES20.GL_STATIC_DRAW
-//            )
         }
     }
 
@@ -272,7 +242,6 @@ class MyRenderer02(
 
     override fun destroy() {
         if (null != boIDs) {
-            // 释放缓存
             GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0)
             GLES20.glBindBuffer(GLES20.GL_ELEMENT_ARRAY_BUFFER, 0)
             GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0)

@@ -17,9 +17,9 @@ import javax.microedition.khronos.opengles.GL10
 /**
  * 拷贝自 chapters8#MyRenderer02
  *
- * 深度测试
+ * 更多的立方体
  */
-class MyRenderer03(
+class MyRenderer04(
     private var assets: AssetManager,
     var r: Float = 1f,
     var b: Float = 1f,
@@ -29,47 +29,47 @@ class MyRenderer03(
 
     private val vertex = floatArrayOf(
         // 坐标            // 纹理坐标
-        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-        0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 
-        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
-        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
-        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+        0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
 
-        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
-        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     )
 
     private lateinit var shader: Shader
@@ -84,14 +84,31 @@ class MyRenderer03(
 
     private var vertexBuffer: FloatBuffer
 
+    private val model = FloatArray(16)
+    private val view = FloatArray(16)
+    private val projection = FloatArray(16)
+
     /**
      * 旋转角度
      */
     private var angle = 0f
 
-    private val model = FloatArray(16)
-    private val view = FloatArray(16)
-    private val projection = FloatArray(16)
+    /**
+     * 10 个立方体的位置，
+     * 每 3 个 float 数值为一个立方体的 x, y, z 的坐标相对位置
+     */
+    private val cubePositions = floatArrayOf(
+        0.0f, 0.0f, 0.0f,
+        2.0f, 5.0f, -15.0f,
+        -1.5f, -2.2f, -2.5f,
+        -3.8f, -2.0f, -12.3f,
+        2.4f, -0.4f, -3.5f,
+        -1.7f, 3.0f, -7.5f,
+        1.3f, -2.0f, -2.5f,
+        1.5f, 2.0f, -2.5f,
+        1.5f, 0.2f, -1.5f,
+        -1.3f, 1.0f, -1.5f
+    )
 
     private var boIDs: IntBuffer? = null
     private var textures: IntBuffer? = null
@@ -111,7 +128,7 @@ class MyRenderer03(
         GLES20.glViewport(0, 0, width, height)
 
         Matrix.setIdentityM(view, 0)
-        Matrix.translateM(view, 0, 0f, 0f, -3f)
+        Matrix.translateM(view, 0, 0f, 0f, -3.0f)
 
         Matrix.setIdentityM(projection, 0)
         Matrix.perspectiveM(projection, 0, 45f, width.toFloat() / height, 0.1f, 100f)
@@ -152,19 +169,37 @@ class MyRenderer03(
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glUniform1i(mOurTextureHandle, 0)
 
-        Matrix.setIdentityM(model, 0)
-        Matrix.rotateM(model, 0, angle++, 0.5f, 1.0f, 0.1f)
-
-        GLES20.glUniformMatrix4fv(mModelHandle, 1, false, model, 0)
         GLES20.glUniformMatrix4fv(mViewHandle, 1, false, view, 0)
         GLES20.glUniformMatrix4fv(mProjectionHandle, 1, false, projection, 0)
 
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
-        GLES20.glDrawArrays(
-            GLES20.GL_TRIANGLES,
-            0,
-            36
-        )
+        for (i in 0..9) {
+            angle += 0.1f
+            Matrix.setIdentityM(model, 0)
+            Matrix.translateM(
+                model,
+                0,
+                cubePositions[i * 3 + 0],
+                cubePositions[i * 3 + 1],
+                cubePositions[i * 3 + 2]
+            )
+            Matrix.rotateM(
+                model,
+                0,
+                20f * i + angle,
+                1.0f,
+                0.3f,
+                0.5f
+            )
+
+            GLES20.glUniformMatrix4fv(mModelHandle, 1, false, model, 0)
+
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures!![0])
+            GLES20.glDrawArrays(
+                GLES20.GL_TRIANGLES,
+                0,
+                36
+            )
+        }
 
         GLES20.glDisableVertexAttribArray(mPositionHandle)
         GLES20.glDisableVertexAttribArray(mTextureHandle)

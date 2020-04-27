@@ -1,4 +1,4 @@
-package me.excq.androidopengles20demo.chapters7
+package me.excq.androidopengles20demo.chapters8
 
 import android.content.res.AssetManager
 import android.graphics.Bitmap
@@ -12,7 +12,7 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 /**
- * 拷贝自 chapters6#MyRenderer01
+ * 拷贝自 chapters7#MyRenderer01
  */
 class MyRenderer01(
     private var assets: AssetManager,
@@ -30,23 +30,40 @@ class MyRenderer01(
         -0.5f, 0.5f, 0.0f, 0.0f, 1.0f
     )
 
-    // 顶点绘制顺序
     private val indices = shortArrayOf(
         0, 1, 2, 0, 2, 3
     )
 
     private lateinit var shader: Shader
 
-    private var mPositionHandle: Int = 0
-    private var mTextureHandle: Int = 0
-    private var mOurTextureHandle: Int = 0
-    private var mTransformHandle: Int = 0
+    private var mPositionHandle: Int = -1
+    private var mTextureHandle: Int = -1
+    private var mOurTextureHandle: Int = -1
+
+    private var mModelHandle: Int = -1
+    private var mViewHandle: Int = -1
+    private var mProjectionHandle: Int = -1
 
     private var vertexBuffer: FloatBuffer
     private var indicesBuffer: ShortBuffer
 
-    private val trans = FloatArray(16)
-    private var angle = 0f
+    /**
+     * 模型矩阵，
+     * 通过将顶点坐标乘以这个模型矩阵，我们将该顶点坐标变换到世界坐标。
+     */
+    private val model = FloatArray(16)
+    /**
+     * 视图矩阵，
+     * 由一系列的位移和旋转的组合来完成，平移/旋转场景从而使得特定的对象被变换到摄像机的前方，
+     * 他被用来将世界坐标变换到观察空间。
+     */
+    private val view = FloatArray(16)
+    /**
+     * 投影矩阵，
+     * 将在一个指定的范围内的坐标变换为标准化设备坐标的范围(-1.0, 1.0)。
+     * 所有在范围外的坐标不会被映射到在-1.0到1.0的范围之间，所以会被裁剪掉。
+     */
+    private val projection = FloatArray(16)
 
     private var boIDs: IntBuffer? = null
     private var textures: IntBuffer? = null
@@ -66,12 +83,42 @@ class MyRenderer01(
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-//        val params = IntBuffer.allocate(4)
-//        GLES20.glGetIntegerv(GLES20.GL_MAX_VERTEX_ATTRIBS, params)
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         GLES20.glViewport(0, 0, width, height)
+
+        /**
+         * 初始化一个模型矩阵，并使围绕 X 轴逆时针旋转 55 度
+         */
+        Matrix.setIdentityM(model, 0)
+        Matrix.rotateM(model, 0, -55f, 1.0f, 0.0f, 0.0f)
+
+        /**
+         * 初始化一个视图矩阵，并使之在 Z 轴上，住后移动三个 OpenGL 单位
+         */
+        Matrix.setIdentityM(view, 0)
+        Matrix.translateM(view, 0, 0f, 0f, -3f)
+
+        /**
+         * 初始化一个投影矩阵，并对这个矩阵进行了赋值。
+         *
+         * 其中观察视角为 45 度，这个值通常被称为 field of view，简单 fov。
+         * 设置了近平面的宽高比，即我们的屏幕显示区域。
+         * 第三个和第四个参数分别表示近平面和远平面与相机的距离。
+         *
+         * 这里出现的近平面、远平面和相机，分别表示：
+         * 近平面：我们的屏幕
+         * 远平面：物体实际应该如处的位置
+         * 相机：我们的眼睛
+         *
+         * 简单的说，就是我们通过眼睛看到远处的画像时，在手机屏幕上应该是什么样子的。
+         *
+         * 这里设置的近平面距离是 0.1，差不多是眼睛贴在屏幕上远处画像所显示的效果。
+         * 远平面距离设置的是 100，差不多是离我们眼睛很远的意思。
+         */
+        Matrix.setIdentityM(projection, 0)
+        Matrix.perspectiveM(projection, 0, 45f, width.toFloat() / height, 0.1f, 100f)
     }
 
     override fun onDrawFrame(gl: GL10?) {
@@ -79,32 +126,13 @@ class MyRenderer01(
         initBuffer()
         initTexture()
 
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         GLES20.glClearColor(r, g, b, a)
 
         shader.use()
 
         GLES20.glEnableVertexAttribArray(mPositionHandle)
         GLES20.glEnableVertexAttribArray(mTextureHandle)
-
-        /**
-         * 代码解释：
-         *
-         * 首先使用 setIdentityM 初始化一个矩阵数组，通用的矩阵数组长度为 16，是 4 * 4 结构。
-         * 初始化后，数组的 1*1, 2*2, 3*3, 4*4 的位置，即对角位置均被设置为 1。
-         *
-         * 接着调用了 translateM 方法将矩阵按右上角的方向向量 [0.5, 0.5] 进行了位移。
-         *
-         * 然后调用 rotateM 设置矩阵旋转方向，其中 angle 为旋转角度，其后三个参数，分别表示在哪个方向旋转，
-         * 其中 Z 轴设置为 1f，表示方向垂直于 Z 轴，进行旋转。
-         *
-         * 最后调用 scaleM 设置矩阵的缩放比例，最后三个参数分别表示在 x, y, z 轴上的缩放比例。
-         */
-        Matrix.setIdentityM(trans, 0)
-        Matrix.translateM(trans, 0, 0.5f, 0.5f, 0f)
-        Matrix.rotateM(trans, 0, angle++, 0f, 0f, 1f)
-        Matrix.scaleM(trans, 0, 0.5f, 0.5f, 0.5f)
-        GLES20.glUniformMatrix4fv(mTransformHandle, 1, false, trans, 0)
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, boIDs!![0])
         GLES20.glVertexAttribPointer(
@@ -123,6 +151,10 @@ class MyRenderer01(
             20,
             12
         )
+
+        GLES20.glUniformMatrix4fv(mModelHandle, 1, false, model, 0)
+        GLES20.glUniformMatrix4fv(mViewHandle, 1, false, view, 0)
+        GLES20.glUniformMatrix4fv(mProjectionHandle, 1, false, projection, 0)
 
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glUniform1i(mOurTextureHandle, 0)
@@ -143,14 +175,17 @@ class MyRenderer01(
     private fun initShader() {
         if (!this::shader.isInitialized) {
             shader = Shader(
-                assets.open("chapters7/vertex.glvs"),
-                assets.open("chapters7/fragment.glfs")
+                assets.open("chapters8/vertex.glvs"),
+                assets.open("chapters8/fragment.glfs")
             )
 
             mPositionHandle = shader.getAttribLocation("vPosition")
             mTextureHandle = shader.getAttribLocation("vTexCoord")
             mOurTextureHandle = shader.getUniformLocation("ourTexture")
-            mTransformHandle = shader.getUniformLocation("transform")
+
+            mModelHandle = shader.getUniformLocation("model")
+            mViewHandle = shader.getUniformLocation("view")
+            mProjectionHandle = shader.getUniformLocation("projection")
         }
     }
 
@@ -177,13 +212,12 @@ class MyRenderer01(
         }
     }
 
-
     private fun initTexture() {
         if (null == textures) {
-            textures = IntBuffer.allocate(2)
-            GLES20.glGenTextures(2, textures)
+            textures = IntBuffer.allocate(1)
+            GLES20.glGenTextures(1, textures)
 
-            createTexture("chapters7/container.jpg", 0)
+            createTexture("chapters8/container.jpg", 0)
         }
     }
 
