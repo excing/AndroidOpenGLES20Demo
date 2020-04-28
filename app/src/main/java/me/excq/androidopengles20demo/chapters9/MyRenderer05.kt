@@ -14,16 +14,17 @@ import java.nio.FloatBuffer
 import java.nio.IntBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
-import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 
 /**
- * 拷贝自 chapters9#MyRenderer03
+ * 拷贝自 chapters9#MyRenderer04
  *
- * 调整移动，使之在不同的硬件上拥有相同的速度
+ * 视角移动
  */
-class MyRenderer04(
+class MyRenderer05(
     private var assets: AssetManager,
     var r: Float = 1f,
     var b: Float = 1f,
@@ -93,7 +94,7 @@ class MyRenderer04(
     private val projection = FloatArray(16)
 
     private val cameraPos = floatArrayOf(0.0f, 0.0f, 3.0f)
-    private val cameraFront = floatArrayOf(0.0f, 0.0f, -1.0f)
+    private var cameraFront = floatArrayOf(0.0f, 0.0f, -1.0f)
     private val cameraUp = floatArrayOf(0.0f, 1.0f, 0.0f)
 
     private val cubePositions = floatArrayOf(
@@ -118,10 +119,9 @@ class MyRenderer04(
     private var oldx = 0.0f
     private var oldy = 0.0f
 
-    /**
-     * 坐标轴, 1 表示横向, 2 表示纵向
-     */
-    private var dir = 0
+    private val sensitivity = 0.05f
+    private var yaw = -90.0
+    private var pitch = 0.0
 
     init {
         vertexBuffer = ByteBuffer.allocateDirect(vertex.size * 4)
@@ -138,53 +138,33 @@ class MyRenderer04(
             MotionEvent.ACTION_DOWN -> {
                 oldx = x
                 oldy = y
-                dir = 0
-            }
-            MotionEvent.ACTION_UP -> {
-                if (0 == dir && abs(oldx - x) < 30 && abs(oldy - y) < 30) {
-                    updateBackground()
-                }
             }
             MotionEvent.ACTION_MOVE -> {
-                if (0 == dir && 30 < abs(oldx - x)) {
-                    dir = 1
-                } else if (0 == dir && 30 < abs(oldy - y)) {
-                    dir = 2
-                }
+                var xoffset = oldx - x
+                var yoffset = y - oldy
+                oldx = x
+                oldy = y
 
-                val cameraSpeed = 0.005f * deltaTime
+                xoffset *= sensitivity
+                yoffset *= sensitivity
 
-                when (dir) {
-                    1 -> { // 横向滑动
-                        val temp = multi(normalized(cross(cameraFront, cameraUp)), cameraSpeed)
-                        if (oldx < x) {
-                            cameraPos[0] -= temp[0]
-                            cameraPos[1] -= temp[1]
-                            cameraPos[2] -= temp[2]
-                        } else {
-                            cameraPos[0] += temp[0]
-                            cameraPos[1] += temp[1]
-                            cameraPos[2] += temp[2]
-                        }
-                    }
-                    2 -> { // 纵向滑动
-                        val temp = multi(cameraFront, cameraSpeed)
-                        if (oldy < y) {
-                            cameraPos[0] += temp[0]
-                            cameraPos[1] += temp[1]
-                            cameraPos[2] += temp[2]
-                        } else {
-                            cameraPos[0] -= temp[0]
-                            cameraPos[1] -= temp[1]
-                            cameraPos[2] -= temp[2]
-                        }
-                    }
-                }
+                yaw += xoffset
+                pitch += yoffset
 
-                if (0 != dir) {
-                    oldx = x
-                    oldy = y
-                }
+                if (89f < pitch) pitch = 89.0
+                if (pitch < -89f) pitch = -89.0
+
+                val a = (cos(Math.toRadians(yaw)) * cos(Math.toRadians(pitch))).toFloat()
+                val b = sin(Math.toRadians(pitch)).toFloat()
+                val c = (sin(Math.toRadians(yaw)) * cos(Math.toRadians(pitch))).toFloat()
+
+                cameraFront[0] = a
+                cameraFront[1] = b
+                cameraFront[2] = c
+
+                cameraFront = normalize(cameraFront)
+
+                println("onTouch ${cameraFront.contentToString()}")
             }
         }
     }
@@ -364,6 +344,9 @@ class MyRenderer04(
         this.a = random.nextFloat()
     }
 
+    /**
+     * 矩阵叉乘
+     */
     private fun cross(ai: FloatArray, ar: FloatArray): FloatArray {
         val result = FloatArray(3)
 
@@ -374,6 +357,9 @@ class MyRenderer04(
         return result
     }
 
+    /**
+     * 矩阵乘标量
+     */
     private fun multi(arr: FloatArray, b: Float): FloatArray {
         val result = FloatArray(3)
 
@@ -387,7 +373,7 @@ class MyRenderer04(
     /**
      * 归一化
      */
-    private fun normalized(arr: FloatArray): FloatArray {
+    private fun normalize(arr: FloatArray): FloatArray {
         val len = sqrt(arr[0] * arr[0] + arr[1] * arr[1] + arr[2] * arr[2])
 
         arr[0] = arr[0] / len

@@ -15,6 +15,7 @@ import java.nio.IntBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.abs
+import kotlin.math.sqrt
 import kotlin.random.Random
 
 /**
@@ -149,7 +150,7 @@ class MyRenderer03(
 
                 when (dir) {
                     1 -> { // 横向滑动
-                        val temp = multi(cross(cameraFront, cameraUp), cameraSpeed)
+                        val temp = multi(normalized(cross(cameraFront, cameraUp)), cameraSpeed)
                         if (oldx < x) {
                             cameraPos[0] -= temp[0]
                             cameraPos[1] -= temp[1]
@@ -371,6 +372,19 @@ class MyRenderer03(
         result[2] = arr[2] * b
 
         return result
+    }
+
+    /**
+     * 归一化
+     */
+    private fun normalized(arr: FloatArray): FloatArray {
+        val len = sqrt(arr[0] * arr[0] + arr[1] * arr[1] + arr[2] * arr[2])
+
+        arr[0] = arr[0] / len
+        arr[1] = arr[1] / len
+        arr[2] = arr[2] / len
+
+        return arr
     }
 
     override fun destroy() {
