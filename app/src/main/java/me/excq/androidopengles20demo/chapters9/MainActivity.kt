@@ -25,7 +25,9 @@ class MainActivity : BaseActivity() {
             MyRenderer02(assets),
             MyRenderer03(assets),
             MyRenderer04(assets),
-            MyRenderer05(assets)
+            MyRenderer05(assets),
+            MyRenderer06(assets),
+            MyRenderer07(assets)
         )
 
         glSurfaceView = GLSurfaceView(this)
@@ -46,7 +48,9 @@ class MainActivity : BaseActivity() {
             "02",
             "03",
             "04",
-            "05"
+            "05",
+            "06",
+            "07"
         )
     }
 
@@ -84,7 +88,12 @@ class MainActivity : BaseActivity() {
      * 取消了 RGBA 接口，Touch 事件由 Renderer 内部自己处理
      */
     interface ITouch {
-        fun onTouch(action: Int, x: Float, y: Float)
+        fun onTouch(
+            event: MotionEvent,
+            action: Int,
+            x: Float,
+            y: Float
+        )
     }
 
     interface Destroy {
@@ -96,7 +105,7 @@ class MainActivity : BaseActivity() {
     ) : View.OnTouchListener {
         override fun onTouch(v: View?, event: MotionEvent?): Boolean {
             if (event != null) {
-                touch.onTouch(event.action, event.x, event.y)
+                touch.onTouch(event, event.action, event.x, event.y)
             }
             return true
         }
@@ -124,8 +133,13 @@ class MainActivity : BaseActivity() {
             renderer.onSurfaceCreated(gl, config)
         }
 
-        override fun onTouch(action: Int, x: Float, y: Float) {
-            renderer.onTouch(action, x, y)
+        override fun onTouch(
+            event: MotionEvent,
+            action: Int,
+            x: Float,
+            y: Float
+        ) {
+            renderer.onTouch(event, action, x, y)
         }
 
         override fun destroy() {

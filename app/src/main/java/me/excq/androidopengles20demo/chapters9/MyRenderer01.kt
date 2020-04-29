@@ -284,7 +284,12 @@ class MyRenderer01(
         bitmap?.recycle()
     }
 
-    override fun onTouch(action: Int, x: Float, y: Float) {
+    override fun onTouch(
+        event: MotionEvent,
+        action: Int,
+        x: Float,
+        y: Float
+    ) {
         if (action == MotionEvent.ACTION_UP) {
             val random = Random(System.currentTimeMillis())
             this.r = random.nextFloat()

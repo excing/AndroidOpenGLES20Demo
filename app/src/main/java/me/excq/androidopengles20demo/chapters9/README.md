@@ -275,16 +275,166 @@ todo 此处应有效果图（视频）
 ### 欧拉角
 
 欧拉角（Euler Angle）是可以表示 3D 空间中任何旋转的 3 个值，由莱昂哈德·欧拉（Leonhard Euler）在 18 世纪提出。
-一共有 3 种欧拉角：俯仰角（Pitch）、偏航角（Yaw）和滚转角（Roll），下面的图片展示了他们的含义：
+一共有 3 种欧拉角：俯仰角（Pitch）、偏航角（Yaw）和滚转角（Roll）：
 
-todo 此处就有示例图
-
-**俯仰角**是描述我们如何往上或往下看的角，可以在第一张图中看到。
-第二张展示了**偏航角**，偏航角表示我们往左和往右看的程序。
+**俯仰角**是描述我们如何往上或往下看的角。
+**偏航角**，表示我们往左和往右看的程序。
 **滚转角**代表我们如何**翻滚**摄像机，通常在太空飞船的摄像机中使用。
 每个欧拉角都最有一个值表示，把三个角结合起来，我们就能够计算 3D 空间中任何的旋转向量了。
 
 对于我们的摄像机系统来说，我们只关心俯仰角和偏航角，所以我们不会讨论滚转角。
-给定一个俯仰角和偏航角，我们可以把他们转换为一个代表新的方向向量的 3D 向量。
+给定一个俯仰角和偏航角，我们可以把他们转换为一个代表新的方向向量的 3D 向量：
 
-todo 今天就到这里吧，明天见。
+```kotlin
+val x = (cos(Math.toRadians(pitch)) * cos(Math.toRadians(yaw))).toFloat()
+val y = sin(Math.toRadians(pitch)).toFloat()
+val z = (cos(Math.toRadians(pitch)) * sin(Math.toRadians(yaw))).toFloat()
+```
+
+以上，`pitch` 表示俯仰角，`yaw` 表示偏航角。
+
+## 鼠标输入
+
+我们在 `MyRenderer03` 和 `MyRenderer04` 中，使用 touch 事件，实现了摄像机的平移和前后移动。
+本节中，我们继续使用 touch 事件，实现摄像机视角的移动。
+
+首先，先初始化俯仰角和偏航角
+
+```kotlin
+private val sensitivity = 0.05f
+private var yaw = -90.0
+private var pitch = 0.0
+```
+
+`sensitivity` 表示移动灵敏度。
+如果我们忽略这个值，鼠标移动就会太大了；你可以自己实验一下，找到适合自己的灵敏度值。
+`yaw` 表示偏航角，`-90.0` 表示偏航被初始化为 -90.0 度，如果偏航为 0.0 会导致方向矢量指向右侧，
+这是因为 `yaw` 和 `pitch` 最后合成的矩阵是 `cameraFront`，因此我们最初向左旋转一点。
+
+```kotlin
+override fun onTouch(action: Int, x: Float, y: Float) {
+    when (action) {
+        MotionEvent.ACTION_DOWN -> {
+            oldx = x
+            oldy = y
+        }
+        MotionEvent.ACTION_MOVE -> {
+            var xoffset = oldx - x
+            var yoffset = y - oldy
+            oldx = x
+            oldy = y
+
+            xoffset *= sensitivity
+            yoffset *= sensitivity
+
+            yaw += xoffset
+            pitch += yoffset
+
+            if (89f < pitch) pitch = 89.0
+            if (pitch < -89f) pitch = -89.0
+
+            val a = (cos(Math.toRadians(pitch)) * cos(Math.toRadians(yaw))).toFloat()
+            val b = sin(Math.toRadians(pitch)).toFloat()
+            val c = (cos(Math.toRadians(pitch)) * sin(Math.toRadians(yaw))).toFloat()
+
+            cameraFront[0] = a
+            cameraFront[1] = b
+            cameraFront[2] = c
+
+            cameraFront = normalize(cameraFront)
+        }
+    }
+}
+```
+
+在 touch 的回调函数中，我们计算当前帧和上一帧的触摸位置偏移量。
+注意 `xoffset` 和 `yoffset` 的计算，
+x 轴的偏移量代表的是**偏航角**，y 同的偏移量代表的是**俯仰角**，
+先讲 `xoffset`：
+
+在操作上，当我们向右滑动时，我们希望的是摄像头向左移动（就像转铅笔一样，笔的两端的方向相反），
+反之亦然。
+在 OpenGL 中原点在屏幕中心，上方为 Y 轴正方向，右方为 X 轴正方向，
+摄像头向左移动，则表示偏航角增大（逆时针运动了），但为负值（X 轴左方向为负值）；
+对应到 Android 的 touch 事件中，
+屏幕原点(0, 0)在左上角，下方为 Y 轴正方向，右方为 X 轴正方向，
+往右滑动，则 y 值越大，因此此处要用 oldx 减去 x（oldx 比 x 小），
+因为操作方向与摄像机方向刚好相反。
+由此也能想象到，计算俯仰角时是什么情况了。
+
+在操作上，当我们向下滑动时，我们希望的是摄像头向上移动（就像跷跷板一样），
+反之亦然。
+前面说了 OpenGL 的坐标系和 Android 的坐标系，X 轴方向一致，但 Y 轴方向相反。
+因此，在计算俯仰角时，
+摄像头向上移动时，我们需要一个正值的俯仰角，
+因此此处要用 y 减去 oldy（y 比 oldy 大），
+这与偏航角的计算刚好相反。
+
+接下下，我们把偏移量加到 `pitch` 和 `yaw` 上。
+
+不过我们需要给摄像机添加一些限制，这样摄像机就不会发生奇怪的移动了（也会避免一些奇怪的问题）。
+对于俯仰角，要让用户不能看向高于 89 度的地方（在 90 度时视角会发生逆转，所以我们把 89 度作为极限），
+同样也不允许小于 -89 度。
+这样能够保证用户只能看到天空或脚下，但是不能超过这个限制。
+因此代码中我们用了两个 if 来实现这个限制。
+
+注意，我们没有给偏航角设置限制，这是因为我们不希望限制用户的水平旋转。
+当然，给偏航角设置限制也容易，如果你愿意可以自己实现。
+
+最后一步，就是通过用俯仰角和偏航角来计算，以得到真正的方向向量。
+计算出来的方向向量就会包含根据鼠标移动计算出来的所有旋转了。
+
+最后把归一化方法补上：
+
+```kotlin
+private fun normalize(arr: FloatArray): FloatArray {
+    val len = sqrt(arr[0] * arr[0] + arr[1] * arr[1] + arr[2] * arr[2])
+
+    arr[0] = arr[0] / len
+    arr[1] = arr[1] / len
+    arr[2] = arr[2] / len
+
+    return arr
+}
+```
+
+## 缩放(MyRenderer06)
+
+> 由于模拟器无法多点触摸操作，因此我们将屏幕不同区域视作不同的操作区域。
+
+作为我们摄像机系统的一个附加内容，我们还会来实现一个缩放(Zoom)接口。
+在之前的教程中我们说**视频**（Field of View）或**fov**定义了我们可以看到场景中多大的范围，
+当视野变小时，场景投影出来的空间就会减小，产生放大（Zoom In）了的感觉。
+
+我们使用屏幕右区域来实现该功能：
+
+```kotlin
+private fun onZoom(
+    yoffset: Float
+) {
+    if (fov in 1.0f..90.0f) {
+        fov -= yoffset * sensitivity
+    }
+    if (fov <= 1.0f) {
+        fov = 1.0f
+    }
+    if (90.0f <= fov) {
+        fov = 90.0f
+    }
+
+    Matrix.perspectiveM(
+        projection, 0,
+        fov,
+        aspect, 0.1f, 100f
+    )
+}
+```
+
+现在我们就实现了一个简单的摄像机系统了，他能够让我们在 3D 环境中自由移动。
+
+你可以去自由地实验，如果遇到困难，可以对比 MyRenderer06 的源码。
+
+接下来，MyRenderer07 将实现多点触摸，让我们能够同时进行多个操作，
+并且将会把摄像机抽象出来，作为单独的一个类使用。
+
+todo 好了，不说了，今天闲鱼一下，不写代码，看电视去了  6666666666666666666666666666666666666  拜拜

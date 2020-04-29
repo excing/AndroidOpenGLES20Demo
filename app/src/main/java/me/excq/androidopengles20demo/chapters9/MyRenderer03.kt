@@ -129,7 +129,12 @@ class MyRenderer03(
      */
     private var dir = 0
 
-    override fun onTouch(action: Int, x: Float, y: Float) {
+    override fun onTouch(
+        event: MotionEvent,
+        action: Int,
+        x: Float,
+        y: Float
+    ) {
         when (action) {
             MotionEvent.ACTION_DOWN -> {
                 oldx = x
