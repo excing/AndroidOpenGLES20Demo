@@ -27,7 +27,8 @@ class MainActivity : BaseActivity() {
             MyRenderer04(assets),
             MyRenderer05(assets),
             MyRenderer06(assets),
-            MyRenderer07(assets)
+            MyRenderer07(assets),
+            MyRenderer08(assets)
         )
 
         glSurfaceView = GLSurfaceView(this)
@@ -50,7 +51,8 @@ class MainActivity : BaseActivity() {
             "04",
             "05",
             "06",
-            "07"
+            "07",
+            "08"
         )
     }
 
