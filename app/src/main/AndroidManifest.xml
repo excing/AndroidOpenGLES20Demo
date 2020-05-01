@@ -32,23 +32,23 @@
         <activity
             android:name=".PrefaceActivity"
             android:label="@string/string_preface" />
-        <activity android:name=".chapters1.MainActivity"
+        <activity android:name=".chapters01.MainActivity"
             android:label="@string/string_chapters1"/>
-        <activity android:name=".chapters2.MainActivity"
+        <activity android:name=".chapters02.MainActivity"
             android:label="@string/string_chapters2"/>
-        <activity android:name=".chapters3.MainActivity"
+        <activity android:name=".chapters03.MainActivity"
             android:label="@string/string_chapters3"/>
-        <activity android:name=".chapters4.MainActivity"
+        <activity android:name=".chapters04.MainActivity"
             android:label="@string/string_chapters4"/>
-        <activity android:name=".chapters5.MainActivity"
+        <activity android:name=".chapters05.MainActivity"
             android:label="@string/string_chapters5"/>
-        <activity android:name=".chapters6.MainActivity"
+        <activity android:name=".chapters06.MainActivity"
             android:label="@string/string_chapters6"/>
-        <activity android:name=".chapters7.MainActivity"
+        <activity android:name=".chapters07.MainActivity"
             android:label="@string/string_chapters7"/>
-        <activity android:name=".chapters8.MainActivity"
+        <activity android:name=".chapters08.MainActivity"
             android:label="@string/string_chapters8"/>
-        <activity android:name=".chapters9.MainActivity"
+        <activity android:name=".chapters09.MainActivity"
             android:label="@string/string_chapters9"/>
     </application>
 
