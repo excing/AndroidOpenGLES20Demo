@@ -1,0 +1,54 @@
+attribute float a_tData;
+
+uniform vec4 u_StartEndData;
+uniform vec4 u_ControlData;
+
+uniform float u_Offset;
+
+varying vec4 v_Color;
+
+// 三阶贝塞尔公式
+vec2 bezier_3order(in vec2 p0, in vec2 p1, in vec2 p2, in vec2 p3, in float t){
+    float tt = (1.0 - t) * (1.0 -t);
+    return tt * (1.0 -t) *p0 + 3.0 * t * tt * p1 + 3.0 * t *t *(1.0 -t) *p2 + t *t *t *p3;
+}
+
+// 使用 OpenGL 内置函数 mix 求值三阶贝塞尔
+vec2 bezier_3order_mix(in vec2 p0, in vec2 p1, in vec2 p2, in vec2 p3, in float t) {
+    vec2 q0 = mix(p0, p1, t);
+    vec2 q1 = mix(p1, p2, t);
+    vec2 q2 = mix(p2, p3, t);
+
+    vec2 r0 = mix(q0, q1, t);
+    vec2 r1 = mix(q1, q2, t);
+
+    return mix(r0, r1, t);
+}
+
+void main() {
+    vec2 p0 = vec2(u_StartEndData.xy);
+    vec2 p3 = vec2(u_StartEndData.zw);
+
+    vec2 p1 = vec2(u_ControlData.xy);
+    vec2 p2 = vec2(u_ControlData.zw);
+
+    p0.y *= u_Offset;
+    p1.y *= u_Offset;
+    p2.y *= u_Offset;
+    p3.y *= u_Offset;
+
+    float t = a_tData;
+
+//    vec2 point = bezier_3order(p0, p1, p2, p3, t);
+    vec2 point = bezier_3order_mix(p0, p1, p2, p3, t);
+
+    vec4 pos = vec4(point.xy, 0.0, 1.0);
+
+    gl_PointSize = 4.0;
+    gl_Position = pos;
+
+    // 将着色器程序中所有相关的变量直接发送到片段着色器的输出通道，以评估它们。
+    // 通过直接输出着色器变量到输出颜色通道，我们通常可以通过观察视觉结果来获取有用的信息。
+    // 这是 Debug 常用的技巧之一。
+    v_Color = pos;
+}

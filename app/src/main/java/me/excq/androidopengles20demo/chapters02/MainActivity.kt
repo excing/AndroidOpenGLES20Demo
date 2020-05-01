@@ -78,10 +78,50 @@ class MainActivity : BaseActivity() {
         private var vertexBuffer: FloatBuffer
 
         init {
+            /**
+             * 创建缓冲存区对象时，必须使用 ByteBuffer.allocateDirect 方法，
+             * 此缓冲区对象是发送给 OpenGL 使用的，而 OpenGL 无法读取 JVM 的缓存对象，
+             * 因此使用 ByteBuffer.allocate 方法生成的缓存区对象，OpenGL 会直接报错。
+             * 错误内容大概如下：
+             *
+               JNI DETECTED ERROR IN APPLICATION: jarray was NULL
+                   in call to GetPrimitiveArrayCritical
+                   from void android.opengl.GLES20.glBufferData(int, int, java.nio.Buffer, int)
+               "GLThread 1122" prio=5 tid=14 Runnable
+                 | group="main" sCount=0 dsCount=0 flags=0 obj=0x9d72e0b8 self=0x95f1ee00
+                 | sysTid=804 nice=0 cgrp=default sched=0/0 handle=0x7d793970
+                 | state=R schedstat=( 72162360 3964558 40 ) utm=0 stm=7 core=0 HZ=100
+                 | stack=0x7d690000-0x7d692000 stackSize=1042KB
+                 | held mutexes= "mutator lock"(shared held)
+                 native: #00 pc 004151b6  /system/lib/libart.so (art::DumpNativeStack(std::__1::basic_ostream<char, std::__1::char_traits<char>>&, int, BacktraceMap*, char const*, art::ArtMethod*, void*, bool)+198)
+                 native: #01 pc 0051034e  /system/lib/libart.so (art::Thread::DumpStack(std::__1::basic_ostream<char, std::__1::char_traits<char>>&, bool, BacktraceMap*, bool) const+382)
+                 native: #02 pc 0050b603  /system/lib/libart.so (art::Thread::Dump(std::__1::basic_ostream<char, std::__1::char_traits<char>>&, bool, BacktraceMap*, bool) const+83)
+                 native: #03 pc 0031a720  /system/lib/libart.so (art::JavaVMExt::JniAbort(char const*, char const*)+1088)
+                 native: #04 pc 0031ab91  /system/lib/libart.so (art::JavaVMExt::JniAbortV(char const*, char const*, char*)+113)
+                 native: #05 pc 000d5f77  /system/lib/libart.so (art::(anonymous namespace)::ScopedCheck::AbortF(char const*, ...)+71)
+                 native: #06 pc 000d52af  /system/lib/libart.so (art::(anonymous namespace)::ScopedCheck::CheckArray(art::ScopedObjectAccess&, _jarray*)+287)
+                 native: #07 pc 000d45c8  /system/lib/libart.so (art::(anonymous namespace)::ScopedCheck::CheckPossibleHeapValue(art::ScopedObjectAccess&, char, art::(anonymous namespace)::JniValueType)+440)
+                 native: #08 pc 000d3a5b  /system/lib/libart.so (art::(anonymous namespace)::ScopedCheck::Check(art::ScopedObjectAccess&, bool, char const*, art::(anonymous namespace)::JniValueType*)+811)
+                 native: #09 pc 000cfe42  /system/lib/libart.so (art::(anonymous namespace)::CheckJNI::GetPrimitiveArrayCritical(_JNIEnv*, _jarray*, unsigned char*)+930)
+                 native: #10 pc 00094335  /system/lib/libandroid_runtime.so (android_glBufferData__IILjava_nio_Buffer_2I(_JNIEnv*, _jobject*, int, int, _jobject*, int)+165)
+             *
+             * 可以看到，OpenGL 在 调用 glBufferData 时出现了错误，
+             * 所以这里一定不能不能忘记了，这可是花了我 1 个多小时才找到的问题，
+             * 网上也没有这方面的提示，都是直接写，没有讲原因。
+             * 结果有一次（在 MyRenderer10 一节），手写的时候写成了 allocate 方法，结果就报错了，
+             * 这还不好找，错误日志里就只说初始化缓存区对象（初始化在 initBuffer 方法里执行的）那里有问题，
+             * 然后就是上面那一堆错误，也看不懂啊，网上也没有这方面的案例，
+             * 还去着色器脚本那里找 bug。
+             * 后面实在没办法，把之前的代码拷贝过来，只改参数，才发现了这个 bug。
+             * 泪目~
+             */
             vertexBuffer = ByteBuffer.allocateDirect(points.size * 4)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer();
             vertexBuffer.put(points)
+            /**
+             * 一定一定要把位置重置为 0
+             */
             vertexBuffer.position(0)
         }
 

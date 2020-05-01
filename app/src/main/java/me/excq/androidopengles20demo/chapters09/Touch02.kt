@@ -21,7 +21,10 @@ class Touch02(
 
     private var pointer = mutableMapOf<Int, TouchPointer>()
 
-    private var exit = false
+    /**
+     * sendTouchData 协程开关
+     */
+    private var on = false
 
     override fun onTouch(
         event: MotionEvent,
@@ -68,9 +71,9 @@ class Touch02(
     }
 
     private fun sendTouchData() {
-        exit = true
+        on = true
         GlobalScope.launch {
-            while (exit) {
+            while (on) {
                 delay(16L) // 16ms
                 for ((_, v) in pointer) {
                     pointerTouchCallback.onTouch(
@@ -85,7 +88,7 @@ class Touch02(
     }
 
     private fun cancelTouchData() {
-        exit = false
+        on = false
     }
 
     private fun addPointer(event: MotionEvent) {

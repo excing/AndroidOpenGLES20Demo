@@ -125,6 +125,11 @@ class MyRenderer01(var r: Float, var b: Float, var g: Float, var a: Float) :
             GLES20.glGenBuffers(1, vbo)
             GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, vbo!![0])
 
+            /**
+             * GL_STATIC_DRAW：表示该缓存区不会被修改；
+               GL_DyNAMIC_DRAW：表示该缓存区会被周期性更改；
+               GL_STREAM_DRAW：表示该缓存区会被频繁更改；
+             */
             GLES20.glBufferData(
                 GLES20.GL_ARRAY_BUFFER,
                 points.size * 4,
