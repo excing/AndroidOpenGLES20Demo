@@ -306,4 +306,10 @@ GLES20.glBlendEquationSeparate(GLES20.GL_FUNC_ADD, GLES20.GL_FUNC_ADD)
 MyRenderer06，MRenderer07 是我基于均匀 t 值的一种优化方式。
 最终效果还是差了一些，所以就不多写了，有兴趣的可以自行查看。
 
+------------
+
+> 参考: [匀速贝塞尔曲线运动的实现](https://blog.csdn.net/auccy/article/details/100746760)
+> 参考: [在 iOS 中使用 OpenGL ES 实现绘画板](http://www.lymanli.com/2020/01/04/ios-opengles-paint/)
+> 参考: [MFBezierCurvesTool.m](https://github.com/lmf12/GLPaintView/blob/master/GLPaintView/Utils/MFBezierCurvesTool.m)
+
 todo 明天见啊，明天实现文字功能。拜拜，晚安。
