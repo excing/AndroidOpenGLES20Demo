@@ -18,17 +18,16 @@ class MainActivity : BaseActivity() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        super.onCreate(savedInstanceState)
 
         myRendererList = arrayOf(
-            MyRenderer04(assets),
             MyRenderer01(assets),
             MyRenderer02(assets),
-            MyRenderer03(assets)
-//            MyRenderer05()
-//            MyRenderer06(assets)
-//            MyRenderer07(assets)
-//            MyRenderer08(assets)
+            MyRenderer03(assets),
+            MyRenderer04(assets),
+            MyRenderer05(assets),
+            MyRenderer06(assets),
+            MyRenderer07(assets),
+            MyRenderer08(assets)
         )
 
         glSurfaceView = GLSurfaceView(this)
@@ -48,17 +47,16 @@ class MainActivity : BaseActivity() {
             "01",
             "02",
             "03",
-            "04"
-//            "05"
-//            "06"
-//            "07"
-//            "08"
+            "04",
+            "05",
+            "06",
+            "07",
+            "08"
         )
     }
 
     override fun onSpinnerSelected(position: Int) {
-        rendererProxy.renderer = myRendererList[position]
-        rendererProxy.updateSurfaceIfChanged()
+        rendererProxy.updateSurfaceIfChanged(myRendererList[position])
     }
 
     override fun onMenu2Click() {
@@ -117,8 +115,10 @@ class MainActivity : BaseActivity() {
         private var width = 0
         private var height = 0
 
-        fun updateSurfaceIfChanged() {
-            renderer.onSurfaceChanged(null, width, height)
+        fun updateSurfaceIfChanged(newRenderer: Renderer) {
+            this.renderer.destroy()
+            this.renderer = newRenderer
+            this.renderer.onSurfaceChanged(null, width, height)
         }
 
         override fun onDrawFrame(gl: GL10?) {

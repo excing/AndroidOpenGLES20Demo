@@ -12,53 +12,40 @@ import java.nio.ByteOrder
 import java.nio.IntBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
+import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.sqrt
+
 
 /**
- * 拷贝自 MyRenderer01
+ * 拷贝自 MyRenderer06
  *
- * 绘制画板铅笔功能，
- * 由于 Android Touch 的事件有时间迟延，因此在快速移动时，点与点之间是不连续的，
- * 要想解决这个问题，有几种解决方案，常用的有直接插值（MyRenderer05）和贝塞尔插值（MyRenderer06），
- * 可以参考相关代码实现。
+ * 使用贝塞尔曲线插值方式的方式实现画板铅笔画线功能，
+ *
+ * 使用一种近似求插值点数量的方式：
+ * 计算两端到控制点的距离，通过该距离计算我们需要的点。
+ *
+ * 这种计算方式，依然存在固定插值的问题，不过会弱化一些。
+ * 我们通过一些手段可以近一步减少这种插值不均匀的现象。
+ *
+ * 我们发现，二阶贝塞尔（即我们插值使用的）的点（处 t 时间点的点）的距离，
+ * 是遵循正态分布的表现形式。
+ * 所以我们在计算 t 值时，可以采用加上正态分布因子，
+ * 这样就可以进一步减少插值不均匀的情况了。
+ *
+ * 不过用处不大，建议采用 MyRenderer08 的实现方式。
  */
-class MyRenderer04(
+class MyRenderer07(
     private var assets: AssetManager,
     var r: Float = 1f,
     var b: Float = 1f,
     var g: Float = 1f,
     var a: Float = 1f
 ) : MainActivity.Renderer() {
-    /**
-     * float 类型占 4 个字节长度
-     */
     private val floatTypeSize: Int = 4
-
-    /**
-     * 每个点的顶点属性数量，
-     * 这里的每个点只有 x, y 两个轴的属性，
-     * 由此数量为 2。
-     */
     private val vertexCountPerPointer: Int = 2
-
-    /**
-     * 每个点的字节大小，
-     * 计算方式：顶点属性数量 * 顶点属性字段类型长度，
-     * 这里的顶点属性数量为 2，
-     * 顶点属性字段类型为 float, float 类型长度为 4，
-     * 因此此字节大小是 2 * 4
-     */
     private val byteSizePerPointer: Int = vertexCountPerPointer * floatTypeSize
-
-    /**
-     * 默认点的缓存数量，当超过这个数量的 2/3 后，自动扩容。
-     *
-     * 扩容策略：2 倍原来的容量
-     */
     private val defaultCountPointer: Int = 512
-
-    /**
-     * 默认的顶点缓存容量
-     */
     private val defaultPointerBufferCapacity = defaultCountPointer * byteSizePerPointer
 
     private lateinit var shader: Shader
@@ -74,18 +61,27 @@ class MyRenderer04(
     private var mPointerCount: Int = 0
     private var mSurfaceSize = PointF()
 
+    /**
+     * 直线插值的点间距，单位：px
+     */
+    private val div = 3.0f
     private val latestPoint = PointF()
-    private val oldPoint = PointF()
+    private val oldPoint = PointF(Float.MIN_VALUE, Float.MIN_VALUE)
+    private val fromPoint = PointF()
+    private val toPoint = PointF()
 
     private var on = false
     private var frameTime = 0L
+    private var latestFrameCount = 0L
+    private var lastFrameCount = 0L
 
     private fun startListenFrameInfo() {
         on = true
         GlobalScope.launch {
             while (on) {
-                delay(30)
-                println("frameTime: $frameTime")
+                delay(1000)
+                println("frameTime: ${latestFrameCount - lastFrameCount}, $frameTime")
+                lastFrameCount = latestFrameCount
             }
         }
     }
@@ -101,6 +97,7 @@ class MyRenderer04(
 
     override fun onDrawFrame(gl: GL10?) {
         val latestTime = System.currentTimeMillis()
+        latestFrameCount++
 
         initShader()
         initBuffer()
@@ -110,6 +107,8 @@ class MyRenderer04(
 
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         GLES20.glClearColor(r, g, b, a)
+
+        if (0 == mPointerCount) return
 
         shader.use()
 
@@ -133,8 +132,6 @@ class MyRenderer04(
 
         GLES20.glUniform4f(uColorHandle, 1.0f, 0.3f, 0.0f, 1.0f)
 
-        if (0 == mPointerCount) return
-
         GLES20.glDrawArrays(
             GLES20.GL_POINTS,
             0,
@@ -149,8 +146,8 @@ class MyRenderer04(
     private fun initShader() {
         if (!this::shader.isInitialized) {
             shader = Shader(
-                assets.open("chapters10/vertex04.glvs"),
-                assets.open("chapters10/fragment04.glfs")
+                assets.open("chapters10/vertex05.glvs"),
+                assets.open("chapters10/fragment05.glfs")
             )
 
             aPositionHandle = shader.getAttribLocation("a_Position")
@@ -174,64 +171,140 @@ class MyRenderer04(
     private fun capacityExpansionIfNeeded() {
         val limit = mTouchPointerBuffer.limit()
         val position = mTouchPointerBuffer.position()
-        val remaining = mTouchPointerBuffer.remaining()
 
         if (limit * 0.67f <= position) {
-            println("capacityExpansionIfNeeded1 $limit, $position,  $remaining")
             val temp = ByteBuffer
-                /**
-                 * 自动扩容为原来的两倍。
-                 *
-                 * 注意，引处有内存溢出的风险。
-                 */
                 .allocateDirect(limit * floatTypeSize * 2)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer()
-            println("capacityExpansionIfNeeded2 ${temp.limit()}, ${temp.position()},  ${temp.remaining()}")
             mTouchPointerBuffer.flip()
-            println("capacityExpansionIfNeeded3 ${mTouchPointerBuffer.limit()}, ${mTouchPointerBuffer.position()},  ${mTouchPointerBuffer.remaining()}")
             temp.put(mTouchPointerBuffer)
             mTouchPointerBuffer = temp
-            println("capacityExpansionIfNeeded4 ${mTouchPointerBuffer.limit()}, ${mTouchPointerBuffer.position()},  ${mTouchPointerBuffer.remaining()}")
+        }
+    }
+
+    private fun updatePointerBuffer() {
+        val ax = latestPoint.x
+        val ay = latestPoint.y
+
+        val bx = oldPoint.x
+        val by = oldPoint.y
+
+        oldPoint.x = ax
+        oldPoint.y = ay
+
+        if (Float.MIN_VALUE == ax && Float.MIN_VALUE == ay) {
+            return
+        }
+
+        if (ax == bx && ay == by) {
+            return
+        }
+
+        mTouchPointerBuffer.position(mPointerCount * vertexCountPerPointer)
+        interpolationPointer(ax, ay, bx, by)
+        mTouchPointerBuffer.position(0)
+        println("updatePointerBuffer $mPointerCount")
+    }
+
+    private fun interpolationPointer(
+        ax: Float,
+        ay: Float,
+        bx: Float,
+        by: Float
+    ) {
+        if (Float.MIN_VALUE < bx && Float.MIN_VALUE < by) {
+            toPoint.x = (ax + bx) / 2
+            toPoint.y = (ay + by) / 2
+            pointsWithFrom(fromPoint.x, fromPoint.y, toPoint.x, toPoint.y, bx, by, div)
+
+            fromPoint.x = toPoint.x
+            fromPoint.y = toPoint.y
+        }
+    }
+
+    private fun pointsWithFrom(
+        fromX: Float,
+        fromY: Float,
+        toX: Float,
+        toY: Float,
+        controlX: Float,
+        controlY: Float,
+        pointSize: Float
+    ) {
+        val len1X = abs(fromX - controlX)
+        val len1Y = abs(fromY - controlY)
+
+        val len2X = abs(toX - controlX)
+        val len2Y = abs(toY - controlY)
+
+        val len1 = sqrt(len1X * len1X + len1Y * len1Y)
+        val len2 = sqrt(len2X * len2X + len2Y * len2Y)
+
+        val count = ceil((len1 + len2) / pointSize)
+
+        println("pointsWithFrom ---------------------$count")
+
+        for (i in 0..count.toInt()) {
+            val t = normalDistribution(i, count, 0.4f)
+            println("pointsWithFrom $i -> $t")
+
+            val x = (1 - t) * (1 - t) * fromX + 2 * (1 - t) * t * controlX + t * t * toX
+            val y = (1 - t) * (1 - t) * fromY + 2 * (1 - t) * t * controlY + t * t * toY
+
+            addPointerToBuffer(x, y)
         }
     }
 
     /**
-     * 开始监听触屏事件
+     * 该方法返回一组数据，该数据表现两端密，中间疏的特性。
      *
-     * 注意此方法必须处于 GLThread 线程内，
-     * 即在只能 onDrawFrame, onSurfaceCreate, onSurfaceChanged 三个方法中调用。
-     *
-     * 如果在其他线程内使用，请注意线程同步的情况。
+     * 返回处于 index 位置的正态分布数值，
+     * count 是该数据集的长度，
+     * f 是分布曲率，f 值越大，则标准差越大。
      */
-    private fun updatePointerBuffer() {
-        /**
-         * latestPoint 在 touch 事件（UI线程）中不断地被更新，
-         * 此处只读取一次，以防在后续使用过程中，被 UI 线程更新了，
-         * 从而导致上下文使用的数值不是同一个。
-         */
-        val x = latestPoint.x
-        val y = latestPoint.y
+    private fun normalDistribution(index: Int, count: Float, f: Float): Float {
+        val half = count / 2
+        val d = 1.0f / count / 2
+        val n = index / count
 
-        if (x == oldPoint.x && y == oldPoint.y) {
-            return
-        }
+        return if (half <= index) (n - d * f * (count - index)) else (n - d * f * index)
+    }
 
-        /**
-         * 换算示意图：document/08：屏幕坐标换算到标准化设备坐标.png
-         */
+    private fun addPointerToBuffer(x: Float, y: Float) {
         val ndcX = (x - mSurfaceSize.x) / mSurfaceSize.x
         val ndcY = (mSurfaceSize.y - y) / mSurfaceSize.y
 
-        mTouchPointerBuffer.position(mPointerCount * vertexCountPerPointer)
         mTouchPointerBuffer.put(ndcX)
         mTouchPointerBuffer.put(ndcY)
         mPointerCount++
+
         capacityExpansionIfNeeded()
-        mTouchPointerBuffer.position(0)
+    }
+
+    private fun touchDown(x: Float, y: Float) {
+        latestPoint.x = x
+        latestPoint.y = y
 
         oldPoint.x = x
         oldPoint.y = y
+
+        fromPoint.x = x
+        fromPoint.y = y
+    }
+
+    private fun touchUp() {
+        latestPoint.x = Float.MIN_VALUE
+        latestPoint.y = Float.MIN_VALUE
+
+        oldPoint.x = Float.MIN_VALUE
+        oldPoint.y = Float.MIN_VALUE
+
+        fromPoint.x = Float.MIN_VALUE
+        fromPoint.y = Float.MIN_VALUE
+
+        toPoint.x = Float.MIN_VALUE
+        toPoint.y = Float.MIN_VALUE
     }
 
     override fun onTouch(
@@ -241,9 +314,15 @@ class MyRenderer04(
         y: Float
     ) {
         when (action) {
-            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+            MotionEvent.ACTION_DOWN -> {
+                touchDown(x, y)
+            }
+            MotionEvent.ACTION_MOVE -> {
                 latestPoint.x = x
                 latestPoint.y = y
+            }
+            MotionEvent.ACTION_UP -> {
+                touchUp()
             }
         }
     }
