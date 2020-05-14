@@ -22,6 +22,40 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    externalNativeBuild {
+//        cmake {
+//            path file('src/main/cpp/CMakeLists.txt')
+//        }
+        ndkBuild {
+            // 指定您的外部本机生成输出目录的路径。
+            // 如果未为此属性指定值，则默认情况下，
+            // Android 插件使用 `<project_dir>/<module>/.externalNativeBuild/` 目录。
+            // buildStagingDirectory "./outputs/ndk-build"
+            // 指定Android.mk构建脚本的相对路径。
+            path "src/main/cpp/Android.mk"
+        }
+    }
+
+    flavorDimensions 'cpuArch'
+    productFlavors {
+        arm8 {
+            dimension 'cpuArch'
+            ndk {
+                abiFilters 'arm64-v8a', 'armeabi-v7a'
+            }
+        }
+        x86_64 {
+            dimension 'cpuArch'
+            ndk {
+                abiFilters 'x86_64', 'x86'
+            }
+        }
+        universal {
+            dimension 'cpuArch'
+            // include all default ABIs. with NDK-r16,  it is:
+            //   armeabi-v7a, arm64-v8a, x86, x86_64
+        }
+    }
 
 }
 

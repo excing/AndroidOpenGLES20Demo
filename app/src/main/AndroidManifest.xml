@@ -52,6 +52,8 @@
             android:label="@string/string_chapters9"/>
         <activity android:name=".chapters10.MainActivity"
             android:label="@string/string_chapters10"/>
+        <activity android:name=".chapters11.MainActivity"
+            android:label="@string/string_chapters11"/>
     </application>
 
 </manifest>

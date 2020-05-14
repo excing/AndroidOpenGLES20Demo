@@ -16,4 +16,5 @@
     <string name="string_chapters8">8、坐标系统</string>
     <string name="string_chapters9">9、摄像机</string>
     <string name="string_chapters10">10、贝塞尔曲线</string>
+    <string name="string_chapters11">11、文本渲染</string>
 </resources>
