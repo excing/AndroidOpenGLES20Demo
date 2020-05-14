@@ -7,6 +7,10 @@ import android.view.MotionEvent
 import android.view.View
 import me.excq.androidopengles20demo.BaseActivity
 import me.excq.androidopengles20demo.WebActivity
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -16,6 +20,8 @@ class MainActivity : BaseActivity() {
     private lateinit var myRendererList: Array<Renderer>
 
     external fun stringFromJNI(): String?
+
+    external fun initTreeType(fontPath: String): Int
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,7 +49,14 @@ class MainActivity : BaseActivity() {
 
         isSpinnerEnable = true
 
-        println("onCreate ${stringFromJNI()}")
+        println("onCreate01 ${stringFromJNI()}")
+
+        val fontPath = copyAndGetPath(
+            assets.open("chapters11/arial.ttf"),
+            File(filesDir, "arial.ttf")
+        )
+        val result = initTreeType(fontPath)
+        println("onCreate02 $fontPath, $result")
     }
 
     override fun getSpinnerData(): Array<String> {
@@ -157,6 +170,23 @@ class MainActivity : BaseActivity() {
     companion object {
         init {
             System.loadLibrary("freetype")
+        }
+
+        @Throws(IOException::class)
+        fun copyAndGetPath(inStream: InputStream, dst: File): String {
+            val out = FileOutputStream(dst)
+            val buf = ByteArray(1024)
+
+            var len: Int
+
+            while (inStream.read(buf).also { len = it } > 0) {
+                out.write(buf, 0, len)
+            }
+
+            inStream.close()
+            out.close()
+
+            return dst.absolutePath
         }
     }
 }

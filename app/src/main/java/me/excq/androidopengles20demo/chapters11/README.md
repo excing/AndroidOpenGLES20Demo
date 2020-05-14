@@ -3,6 +3,9 @@
 > 参考：[文本渲染](https://learnopengl-cn.github.io/06%20In%20Practice/02%20Text%20Rendering/)
 > 参考：[OpenType字体与TrueType字体的区别](https://www.cnblogs.com/lovelp/p/b1e0ecc5ac8f2852f7eb7fabbc95627f.html)
 > 参考：[freetype-gl](https://github.com/rougier/freetype-gl)
+> 参考：[Build android shared lib using ndk-build without have jni folder](https://stackoverflow.com/questions/25868989/build-android-shared-lib-using-ndk-build-without-have-jni-folder/26024451)
+> 参考：[Android 官方教程: Android.mk](https://developer.android.com/ndk/guides/android_mk)
+> 参考：[Android使用freetype](https://juejin.im/post/5b24dd55f265da597c771f17)
 
 当我们在图形计算领域学习到一定阶段后，你可能会想使用 OpenGL 来绘制文本。
 然而，可能与你想象的并不一样，使用像 OpenGL 这样的底层库来把文本渲染到屏幕上并不是一件简单的事情。
@@ -16,8 +19,8 @@
 由于文本字符没有图元，我们必须要有点创造力才行。
 需要使用的一些技术可以是：通过 GL_LINES 来绘制字形，创建文本的 3D 风格，或在 3D 环境中将字符纹理渲染到 2D 四边形上。
 
-开发者最常用的一种方式是将字符绝命毒师绘制到四边形上。
-绘制这些纹理四边形本身其实并不是很复杂，然而检索要绘制文本的绝命毒师却变成一项有挑战性的工作。
+开发者最常用的一种方式是将字符纹理绘制到四边形上。
+绘制这些纹理四边形本身其实并不是很复杂，然而检索要绘制文本的纹理却变成一项有挑战性的工作。
 本节将探索多种文本渲染的实现方法，并且使用 FreeType 库实现一个更加高级但更灵活的渲染文本技术。
 
 ### 经典文本渲染：位图字体
@@ -131,18 +134,30 @@ Android  Studio 支持适用于跨平台项目的 CMake，以及速度比 CMake 
 目录不支持在同一模块中同时使用 CMake 和 ndk-build。
 
 了解到这一点，我们就可以先下载 FreeType [最新版本](https://sourceforge.net/projects/freetype/files/freetype2/2.10.2/) 到本地了，
-然后解压到 **cpp** 目录，此目录位于项目根目录下的 **app\src\main** 文件夹下，如果没有，则新建一个文件夹即可。
+然后解压到 **cpp** 目录，此目录位于项目根目录下的 **app/src/main** 文件夹下，如果没有，则新建一个文件夹即可。
 
-然后我们采用 ndk-build 方式加载和编译 FreeType，这时需要我们编写一个文件：Android.mk，内容如下：
+然后我们采用 ndk-build 方式加载和编译 FreeType，这时需要我们编写一个文件：Android.mk。
+解压出来的文件夹名为 `freetype-2.10.2`，进入 `app/src/main/cpp/freetype-2.10.2` 目录，新建 `Android.mk` 文本文件，内容如下：
 
 ```mk
 LOCAL_PATH := $(call my-dir)
+
 include $(CLEAR_VARS)
-LOCAL_MODULE := freetype
 
-LOCAL_C_INCLUDES := ${LOCAL_PATH}/freetype-2.10.2/include
+LOCAL_MODULE := freetype2-static
 
-include $(BUILD_SHARED_LIBRARY)
+LOCAL_CFLAGS := -DANDROID_NDK \
+                -DFT2_BUILD_LIBRARY=1
+
+LOCAL_C_INCLUDES := ${LOCAL_PATH}/include
+
+LOCAL_SRC_FILES := \
+  src/base/ftsystem.c \
+  src/base/ftinit.c \
+  src/base/ftdebug.c \
+  ...[CLIST]...
+
+include $(BUILD_STATIC_LIBRARY)
 ```
 
 在这里， `LOCAL_PATH` 变量表示源文件在开发树中的位置。
@@ -160,14 +175,28 @@ include $(BUILD_SHARED_LIBRARY)
 
 每个模块名称必须唯一，且不含任何空格。
 
+`LOCAL_CFLAGS` 表示编译时的参数。
+
 下面的 `LOCAL_C_INCLUDES` 变量是用来指定相对于 NDK `root` 目录的路径列表，
 以便在编译所有源文件时添加到 include 搜索路径中。
 在这里，就是 FreeType 库的原生代码，
 FreeType 中 `include` 目录里的 `ft2build.h` 头文件是其入口函数，因此只需要导入这个目录即可。
 
-最后一行 `include $(BUILD_SHARED_LIBRARY)` 帮助构建系统将一切连接到一起。
-`BUILD_SHARED_LIBRARY` 变量指向一个 GNU Makefile 脚本，
+`LOCAL_SRC_FILES` 表示参与编译的源文件，上面示例没有全部写完，完整版本可见 [freetype-2.10.2/Android.mk]()，
+该源文件列表来自 [freetype-2.10.2/docs/INSTALL.ANY]() 说明文件。
+
+最后一行 `include $(BUILD_STATIC_LIBRARY)` 帮助构建系统将一切连接到一起，最终编译成静态库 `.a` 文件。
+`BUILD_STATIC_LIBRARY` 变量指向一个 GNU Makefile 脚本，
 该脚本会收集我们自最近 `include` 以来在 `LOCAL_XXX` 变量中定义的所有信息。
+但构建系统不会将静态库复制到您的项目/软件包中，但可以使用静态库构建共享库。
+
+然后我还要在 `app/src/main/cpp` 目录里新建一个 Android.mk，以引导 ndk-build 找到其他的 `Android.mk`，内容如下：
+
+```mk
+include $(all-subdir-makefiles)
+```
+
+表示导入所有子目录的 ndk-build 的配置文件。
 
 接下来，我们在 `build.gradle` 里加入 `native NDK` 的配置：
 
@@ -190,10 +219,52 @@ dependencies { ... }
 
 其中 `path` 指定 Android.mk 构建脚本的相对路径。
 
-之后在 `MainActivity` 中引入本地共享链接库：
+OK，到这里，就把 FreeType 成功导入到我们的项目中来了，不过我们还没有使用 FreeType 来做任何操作。
+所以也无法看到任何信息。
+
+下面，我们新建一个 `jni01.c` 来测试一下。
+在 `app/src/main/cpp` 目录下新建 `chpaters11` 文件夹，新建 `jni01.c`，内容如下：
+
+```c
+#include <string.h>
+#include <jni.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+JNIEXPORT jstring JNICALL
+Java_me_excq_androidopengles20demo_chapters11_MainActivity_stringFromJNI( JNIEnv* env, jobject thiz )
+{
+   FT_Library ft;
+   if (FT_Init_FreeType(&ft))
+       return (*env)->NewStringUTF(env, "ERROR::FREETYPE: Could not init FreeType Library !.");
+
+   FT_Face face;
+   if (FT_New_Face(ft, "fonts/arial.ttf", 0, &face))
+       return (*env)->NewStringUTF(env, "ERROR::FREETYPE: Failed to load font !");
+   else
+       return (*env)->NewStringUTF(env, "FREETYPE: Successed to load font !");
+}
+```
+
+这是一个 JNI 函数，由 Java 层的 me.excq.androidopengles20demo.chapter11.MainActivity 类的 `stringFromJNI` 方法接收。
+其中 `FT_Init_FreeType` 和 `FT_New_Face` 函数是 FreeType 的 API，他们会返回一个错误信息（如果有），
+我们根据这个错误信息，返回一串字符。Java/kotlin 层代码如下：
 
 ```kotlin
+package me.excq.androidopengles20demo.chapters11
+
+import ...
+
 class MainActivity : BaseActivity() {
+    ...
+    override fun onCreate(savedInstanceState: Bundle?) {
+        ...
+
+        println("onCreate ${stringFromJNI()}")
+    }
+
+    external fun stringFromJNI(): String?
+
     companion object {
         init {
             System.loadLibrary("freetype")
@@ -202,5 +273,65 @@ class MainActivity : BaseActivity() {
 }
 ```
 
-OK，到这里，就把 FreeType 成功导入到我们的项目中来了。
+到这里还不行，我们还要一个 `Android.mk`。
+在 `app/src/main/cpp/chapters11` 目录里新建一个 `Android.mk`，内容如下：
 
+```mk
+LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := freetype
+
+LOCAL_C_INCLUDES := ${LOCAL_PATH}/../freetype-2.10.2/include
+
+LOCAL_SRC_FILES := jni01.c
+
+LOCAL_STATIC_LIBRARIES := freetype2-static
+
+include $(BUILD_SHARED_LIBRARY)
+```
+
+这个跟 `app/src/main/cpp/freetype-2.10.2/Android.mk` 的配置差不多，多了几个变量，如下：
+
+- LOCAL_STATIC_LIBRARIES: 用于存储当前模块依赖的静态库模块列表，在这里我们需要 `freetype2-static` 静态库。
+- BUILD_SHARED_LIBRARY: 指向的构建脚本会收集您在 LOCAL_XXX 变量中提供的模块的所有相关信息，以及确定如何根据您列出的源文件构建目标可执行文件。
+
+重新运行，即可在 Logcat 标签页里看到我们打印的日志了：
+
+```log
+onCreate ERROR::FREETYPE: Failed to load font !
+```
+
+没错，就是这行，因为我们没有 `fonts/arial.ttf` 这个字体文件。
+我们可以使用 Android Studio 里的 Build 菜单的 Analyze APK 选项，打开我们的 Debug 包，
+检查一下我们刚刚运行的 APK 文件结构，我们会发现 `lib` 文件夹里有一个 `libfreetype.so` 文件，
+这个就是上面 `cpp/chapters11/Android.mk` 里 `LOCAL_MODULE` 里配置的共享库名称。
+
+> 今天问了教主，才能把 FreeType 成功导入到项目中，不然你们看不到上面的教程了。
+> 用 ndk-build 看着也挺简单的哦，不过里面有很多的知识点，我不知道，搞的非常狼狈，比如 Android.mk 配置文件，
+> 一个库要配置一个 Android.mk，我本来想当然全局只用了一个 Android.mk，当然的编译失败了，
+> 然后我这个 Android.mk 文件里，FreeType 需要编译的源文件我没有填写，也就是说 `LOCAL_SRC_FILES` 只有一个 `jni01.c`，
+> 结果编译时理所当然说找不到 `FT_Init_FreeType` 和 `FT_New_Face` 函数了。
+> 嗯，大概就是 ndk-build 没用熟导致的。
+
+另外，使用命令行 ndk-build 也可以把我们的 c/c++ 源文件编译为 `.so` 文件，使用以下命令即可：
+
+```cmd
+%ANDROID_NDK%/ndk-build APP_BUILD_SCRIPT=path/to/path/to/project/Android.mk NDK_PROJECT_PATH=path/to/path/to/project
+```
+
+注意，在这里，`Android.mk` 配置里的 `LOCAL_SRC_FILES` 要直接写**相对 `APP_BUILD_SCRIPT` 的路径**，否则无法通过编译。
+编译成功后，我们会在 `APP_BUILD_SCRIPT` 目录时看到生成的 `.so` 文件。
+
+好了，导入 FreeType 库用了昨、今两天时间，不能浪费时间了，我们继续文本渲染。
+
+### 使用 FreeType 渲染文本
+
+FreeType 所做的事就是加载 TrueType 字体并为每一个字形生成位图以及计算几个度量值（Metric）。
+我们可以提取出他生成的位图作为字形的纹理，并使用这些度量值定位字符的字形。
+
+要加载一个字体，我们只需要初始化 FreeType 库，并且将这个字体加载为一个 FreeType 称之为**面**（face）的东西。
+这里为我们加载一个从**Windows/Fonts**目录中拷贝来的 TrueType 字体文件 **arial.ttf**。
+
+todo 今天就到这里吧，明天再战，晚安，再见。

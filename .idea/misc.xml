@@ -8,6 +8,8 @@
   <component name="ProjectPlainTextFileTypeManager">
     <file url="file://$PROJECT_DIR$/app/src/main/cpp/Android.mk" />
     <file url="file://$PROJECT_DIR$/app/src/main/cpp/Application.mk" />
+    <file url="file://$PROJECT_DIR$/app/src/main/cpp/chapters11/Android.mk" />
+    <file url="file://$PROJECT_DIR$/app/src/main/cpp/freetype-2.10.2/Android.mk" />
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_7" project-jdk-name="1.8" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
