@@ -334,4 +334,7 @@ FreeType 所做的事就是加载 TrueType 字体并为每一个字形生成位�
 要加载一个字体，我们只需要初始化 FreeType 库，并且将这个字体加载为一个 FreeType 称之为**面**（face）的东西。
 这里为我们加载一个从**Windows/Fonts**目录中拷贝来的 TrueType 字体文件 **arial.ttf**。
 
-todo 今天就到这里吧，明天再战，晚安，再见。
+FreeType 在 Android 平台上默认加载的 unicode 字符，需要使用 GetStringChars 方法获取，
+为了这个方法，我花了一天多时间去找，真是。。无知真可怕。
+
+todo 虽然文本渲染还是没有成功，不过还是有一点成果的，汉字显示可用了。今天就这样了，明天继续，加油。

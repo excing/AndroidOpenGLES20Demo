@@ -1,0 +1,11 @@
+precision mediump float;
+
+varying vec2 outTexCoord;
+
+uniform sampler2D ourTexture;
+uniform vec3 ourTextColor;
+
+void main() {
+  vec4 sampled = vec4(1.0, 1.0, 1.0, texture2D(ourTexture, outTexCoord).r);
+  gl_FragColor = vec4(ourTextColor, 1.0) * sampled;
+}

@@ -19,16 +19,19 @@ class MainActivity : BaseActivity() {
     private lateinit var rendererProxy: RendererProxy
     private lateinit var myRendererList: Array<Renderer>
 
-    external fun stringFromJNI(): String?
-
-    external fun initTreeType(fontPath: String): Int
+    private external fun stringFromJNI(): String?
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val fontPath = copyAndGetPath(
+            assets.open("chapters11/simfang.ttf"),
+            File(filesDir, "arial.ttf")
+        )
+
         myRendererList = arrayOf(
-            MyRenderer01(assets)
+            MyRenderer01(assets, fontPath)
 //            MyRenderer02(assets),
 //            MyRenderer03(assets),
 //            MyRenderer04(assets),
@@ -50,13 +53,6 @@ class MainActivity : BaseActivity() {
         isSpinnerEnable = true
 
         println("onCreate01 ${stringFromJNI()}")
-
-        val fontPath = copyAndGetPath(
-            assets.open("chapters11/arial.ttf"),
-            File(filesDir, "arial.ttf")
-        )
-        val result = initTreeType(fontPath)
-        println("onCreate02 $fontPath, $result")
     }
 
     override fun getSpinnerData(): Array<String> {
@@ -79,7 +75,7 @@ class MainActivity : BaseActivity() {
     override fun onMenu2Click() {
         WebActivity.open(
             this,
-            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters9"
+            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters11"
         )
     }
 
@@ -174,6 +170,8 @@ class MainActivity : BaseActivity() {
 
         @Throws(IOException::class)
         fun copyAndGetPath(inStream: InputStream, dst: File): String {
+            dst.delete()
+
             val out = FileOutputStream(dst)
             val buf = ByteArray(1024)
 

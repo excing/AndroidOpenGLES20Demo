@@ -62,7 +62,7 @@ class MainActivity : BaseActivity() {
     override fun onMenu2Click() {
         WebActivity.open(
             this,
-            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters9"
+            "https://github.com/excing/AndroidOpenGLES20Demo/tree/master/app/src/main/java/me/excq/androidopengles20demo/chapters10"
         )
     }
 
