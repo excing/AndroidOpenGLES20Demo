@@ -61,7 +61,7 @@ class MyRenderer01(
         initBuffer()
 
         GLES20.glEnable(GLES20.GL_BLEND)
-        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_SRC_ALPHA)
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
         GLES20.glClearColor(r, b, g, a)
 
@@ -150,11 +150,11 @@ class MyRenderer01(
             GLES20.glTexImage2D(
                 GLES20.GL_TEXTURE_2D,
                 0,
-                GLES20.GL_RGBA,
+                GLES20.GL_LUMINANCE,
                 width,
                 height,
                 0,
-                GLES20.GL_RGBA,
+                GLES20.GL_LUMINANCE,
                 GLES20.GL_UNSIGNED_BYTE,
                 bitmap!!.buffer
             )

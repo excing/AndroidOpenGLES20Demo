@@ -100,11 +100,11 @@ int initTexture() {
     glTexImage2D(
             GL_TEXTURE_2D,
             0,
-            GL_RGBA,
+            GL_LUMINANCE,
             face->glyph->bitmap.width,
             face->glyph->bitmap.rows,
             0,
-            GL_RGBA,
+            GL_LUMINANCE,
             GL_UNSIGNED_BYTE,
             face->glyph->bitmap.buffer
     );
