@@ -7,6 +7,7 @@ LOCAL_MODULE := freetype
 LOCAL_C_INCLUDES := ${LOCAL_PATH}/../freetype-2.10.2/include
 
 LOCAL_SRC_FILES := \
+ jni00.c \
  jni01.c \
  jni02.c
 
