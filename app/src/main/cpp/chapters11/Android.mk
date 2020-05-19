@@ -13,6 +13,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_STATIC_LIBRARIES := freetype2-static
 
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -llog \
+ -lGLESv2
 
 include $(BUILD_SHARED_LIBRARY)

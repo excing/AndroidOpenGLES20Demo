@@ -31,8 +31,8 @@ class MainActivity : BaseActivity() {
         )
 
         myRendererList = arrayOf(
-            MyRenderer01(assets, fontPath)
-//            MyRenderer02(assets),
+            MyRenderer01(assets, fontPath),
+            MyRenderer02(assets, fontPath)
 //            MyRenderer03(assets),
 //            MyRenderer04(assets),
 //            MyRenderer05(assets),
@@ -57,8 +57,8 @@ class MainActivity : BaseActivity() {
 
     override fun getSpinnerData(): Array<String> {
         return arrayOf(
-            "01"
-//            "02",
+            "01",
+            "02"
 //            "03",
 //            "04",
 //            "05",
