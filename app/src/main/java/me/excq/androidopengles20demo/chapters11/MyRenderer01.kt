@@ -170,8 +170,8 @@ class MyRenderer01(
             var xpos = 400.0f + bitmap!!.left
             var ypos = 400.0f + (bitmap!!.height + bitmap!!.top)
 
-            val w = bitmap!!.width.toFloat() / mSurfaceSize.x * 7.0f
-            val h = bitmap!!.height.toFloat() / mSurfaceSize.y * 7.0f
+            val w = bitmap!!.width.toFloat() / mSurfaceSize.x
+            val h = bitmap!!.height.toFloat() / mSurfaceSize.y
 
             xpos = (xpos - mSurfaceSize.x) / mSurfaceSize.x
             ypos = (mSurfaceSize.y - ypos) / mSurfaceSize.y

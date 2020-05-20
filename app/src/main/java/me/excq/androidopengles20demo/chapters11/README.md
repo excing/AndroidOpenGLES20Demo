@@ -339,4 +339,25 @@ FreeType 在 Android 平台上默认加载的 unicode 字符，需要使用 GetS
 
 ### 在 c 层渲染文本
 
-todo 效果依然，明天继续。晚安。
+之所以在 c 层渲染文本，是因为在 Java 层渲染的文本位图有问题，而这个问题是因为 OpenGL 渲染时设置错了导致的。
+
+----------
+
+todo 贝塞尔曲线匀速运动的实现原理
+
+求到下一个点的角度即可。
+
+todo Signed Distance Field, SDF 有向距离场。
+
+参考资料:
+
+- [KlayGE中的字体系统](http://www.klayge.org/docs/klayge%E4%B8%AD%E7%9A%84%E5%AD%97%E4%BD%93%E7%B3%BB%E7%BB%9F/)
+- [libgdx-Distance field fonts](https://github.com/libgdx/libgdx/wiki/Distance-field-fonts#introduction)
+- [潘与其-在 WebGL 中渲染文字](https://zhuanlan.zhihu.com/p/65421383)
+- [拳四郎-Signed Distance Field](https://zhuanlan.zhihu.com/p/26217154)
+- [codersnotes-Signed Distance Fields](http://www.codersnotes.com/notes/signed-distance-fields/)
+- [Does anyone have a tutorial or sample on signed distance fields and font rendering?](https://www.reddit.com/r/gamedev/comments/40atcr/does_anyone_have_a_tutorial_or_sample_on_signed/)
+
+todo FreeType 实现描边、斜体、阴影等效果
+
+- [使用FreeType实现矢量字体的粗体、斜体、描边、阴影效果](https://www.cnblogs.com/mfryf/p/3824702.html)
