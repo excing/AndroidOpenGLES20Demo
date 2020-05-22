@@ -1,4 +1,4 @@
-package me.excq.androidopengles20demo.toy
+package me.excq.androidopengles20demo.toy01
 
 import android.content.res.AssetManager
 import android.graphics.PointF
@@ -99,7 +99,8 @@ class MainActivity : BaseActivity() {
 
         private fun initRenderer() {
             if (!this::shader.isInitialized) {
-                shader = Shader(assets.open("toy/vertex.glvs"), assets.open("toy/fragment.glfs"))
+                shader =
+                    Shader(assets.open("toy01/vertex.glvs"), assets.open("toy01/fragment.glfs"))
                 mPositionHandler = shader.getAttribLocation("vPosition")
                 mColorHandler = shader.getAttribLocation("vColor")
                 mMatrixHandler = shader.getUniformLocation("matrix")
@@ -130,6 +131,14 @@ class MainActivity : BaseActivity() {
             Matrix.translateM(
                 matrix,
                 0,
+                x / surfaceSize.x,
+                y / surfaceSize.y,
+                (x + y) / (surfaceSize.x + surfaceSize.y)
+            )
+            Matrix.rotateM(
+                matrix,
+                0,
+                x / surfaceSize.x * 360,
                 x / surfaceSize.x,
                 y / surfaceSize.y,
                 (x + y) / (surfaceSize.x + surfaceSize.y)

@@ -54,7 +54,7 @@
             android:label="@string/string_chapters10"/>
         <activity android:name=".chapters11.MainActivity"
             android:label="@string/string_chapters11"/>
-        <activity android:name=".toy.MainActivity"
+        <activity android:name=".toy01.MainActivity"
             android:label="@string/string_toy01"/>
     </application>
 
