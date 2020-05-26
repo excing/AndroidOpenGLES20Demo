@@ -95,7 +95,7 @@ class MainActivity : BaseActivity() {
         private var action: Int = MotionEvent.ACTION_UP
         private var lastPoint = PointF()
         private var currPoint = PointF()
-        private var div: Int = 4
+        private var div: Int = 1  // 插值距离
         private var vertexBuffer =
             ByteBuffer.allocateDirect(1024 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
         private var vertexCount = 0
@@ -103,15 +103,15 @@ class MainActivity : BaseActivity() {
         /**
          * 填充功能变量
          */
-        private val dirDefault = 0
-        private val dirUp = 1
-        private val dirDown = 2
         private val pixel =
             ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
         private val color = FloatArray(3)
+        private var xScanLeft = 0
+        private var xScanRight = 0
         private var fillBuffer =
             ByteBuffer.allocateDirect(1024 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
         private var fillCount = 0
+        private var readPixelCount = 0
 
         fun onTouch(action: Int, x: Float, y: Float): Boolean {
             this.action = action
@@ -158,65 +158,67 @@ class MainActivity : BaseActivity() {
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
             GLES20.glClearColor(1.0f, 1.0f, 1.0f, 1.0f)
 
-            if (0 == vertexCount) return
-
             shader.use()
 
-            // 开始画笔绘制 ---------------------------------
+            if (0 <= vertexCount) {
 
-            vertexBuffer.position(0)
-            GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, vbo!![0])
-            GLES20.glBufferData(
-                GLES20.GL_ARRAY_BUFFER,
-                vertexCount * 2 * 4,
-                vertexBuffer,
-                GLES20.GL_DYNAMIC_DRAW
-            )
+                // 开始画笔绘制 ---------------------------------
 
-            GLES20.glEnableVertexAttribArray(mPositionHandle)
-            GLES20.glVertexAttribPointer(
-                mPositionHandle,
-                2,
-                GLES20.GL_FLOAT,
-                false,
-                2 * 4, // 一个顶点(x, y)
-                0
-            )
-            GLES20.glDrawArrays(
-                GLES20.GL_POINTS,
-                0,
-                vertexCount
-            )
-            GLES20.glDisableVertexAttribArray(mPositionHandle)
+                vertexBuffer.position(0)
+                GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, vbo!![0])
+                GLES20.glBufferData(
+                    GLES20.GL_ARRAY_BUFFER,
+                    vertexCount * 2 * 4,
+                    vertexBuffer,
+                    GLES20.GL_DYNAMIC_DRAW
+                )
 
-            if (0 == fillCount) return
+                GLES20.glEnableVertexAttribArray(mPositionHandle)
+                GLES20.glVertexAttribPointer(
+                    mPositionHandle,
+                    2,
+                    GLES20.GL_FLOAT,
+                    false,
+                    2 * 4, // 一个顶点(x, y)
+                    0
+                )
+                GLES20.glDrawArrays(
+                    GLES20.GL_POINTS,
+                    0,
+                    vertexCount
+                )
+                GLES20.glDisableVertexAttribArray(mPositionHandle)
+            }
 
-            // 开始填充绘制 ----------------------------------
+            if (0 <= fillCount) {
 
-            fillBuffer.position(0)
-            GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, vbo!![1])
-            GLES20.glBufferData(
-                GLES20.GL_ARRAY_BUFFER,
-                fillCount * 2 * 4,
-                fillBuffer,
-                GLES20.GL_DYNAMIC_DRAW
-            )
+                // 开始填充绘制 ----------------------------------
 
-            GLES20.glEnableVertexAttribArray(mPositionHandle)
-            GLES20.glVertexAttribPointer(
-                mPositionHandle,
-                2,
-                GLES20.GL_FLOAT,
-                false,
-                2 * 4, // 一个顶点(x, y)
-                0
-            )
-            GLES20.glDrawArrays(
-                GLES20.GL_LINES,
-                0,
-                fillCount
-            )
-            GLES20.glDisableVertexAttribArray(mPositionHandle)
+                fillBuffer.position(0)
+                GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, vbo!![1])
+                GLES20.glBufferData(
+                    GLES20.GL_ARRAY_BUFFER,
+                    fillCount * 2 * 4,
+                    fillBuffer,
+                    GLES20.GL_DYNAMIC_DRAW
+                )
+
+                GLES20.glEnableVertexAttribArray(mPositionHandle)
+                GLES20.glVertexAttribPointer(
+                    mPositionHandle,
+                    2,
+                    GLES20.GL_FLOAT,
+                    false,
+                    2 * 4, // 一个顶点(x, y)
+                    0
+                )
+                GLES20.glDrawArrays(
+                    GLES20.GL_LINES,
+                    0,
+                    fillCount
+                )
+                GLES20.glDisableVertexAttribArray(mPositionHandle)
+            }
         }
 
         private fun initRenderer() {
@@ -251,8 +253,10 @@ class MainActivity : BaseActivity() {
             // 之后这一对种子的左右两点，分别向各自的两边探索，
             // ---------------------------------------------------------------------
 
+            val surfaceWidth = mSurfaceSize.x * 2
+            val surfaceHeight = mSurfaceSize.y * 2
             val x = currPoint.x.toInt()
-            val y = (mSurfaceSize.y * 2 - currPoint.y).toInt()
+            val y = (surfaceHeight - currPoint.y).toInt()
 
             GLES20.glReadPixels(x, y, 1, 1, GLES20.GL_RGB, GLES20.GL_FLOAT, pixel)
             pixel.position(0)
@@ -261,26 +265,104 @@ class MainActivity : BaseActivity() {
             color[1] = pixel.get(1)
             color[2] = pixel.get(2)
 
-            println("updateFillArea        ---------------- start")
-            findSeedPoint(x, x + 1, y, 0, mSurfaceSize.x.toInt() * 2, 1, dirDefault)
-            println("updateFillArea        ---------------- end")
+            var xLeft = x
+            var xRight = x
+
+            readPixelCount = 0
+
+            // 向左扫描的第一个种子
+            while (isSameColor(xLeft - 1, y) && 0 < xLeft) {
+                xLeft--
+            }
+            fillBuffer = insertPointToBuffer(
+                xLeft.toFloat(),
+                surfaceHeight - y.toFloat(),
+                fillCount++,
+                fillBuffer
+            )
+
+            // 向右扫描的第一个种子
+            while (isSameColor(xRight + 1, y) && xRight < surfaceWidth) {
+                xRight++
+            }
+            fillBuffer = insertPointToBuffer(
+                xRight.toFloat(),
+                surfaceHeight - y.toFloat(),
+                fillCount++,
+                fillBuffer
+            )
+
+            println("updateFillArea01 $readPixelCount, $xLeft, $xRight")
+            readPixelCount = 0
+
+            // 两个种子分别向上和向下扫描
+
+            var yUp = y
+            xScanLeft = xLeft
+            xScanRight = xRight
+
+            while (xScanLeft <= xScanRight && yUp < surfaceHeight) {
+                yUp++
+                scanLine(yUp, 0, surfaceWidth.toInt(), surfaceHeight.toInt())
+            }
+
+            println("updateFillArea02 $readPixelCount, $xLeft, $xRight, $xScanLeft, $xScanRight")
+            readPixelCount = 0
+
+            var yDown = y
+            xScanLeft = xLeft
+            xScanRight = xRight
+
+            while (xScanLeft <= xScanRight && 0 < yDown) {
+                yDown--
+                scanLine(yDown, 0, surfaceWidth.toInt(), surfaceHeight.toInt())
+            }
+
+            println("updateFillArea03 $readPixelCount, $xLeft, $xRight, $xScanLeft, $xScanRight")
         }
 
-        private fun findSeedPoint(
-            xLeft: Int,
-            xRight: Int,
+        private fun scanLine(
             y: Int,
-            xStart: Int,
-            xEnd: Int,
-            offset: Int,
-            dir: Int        // 0 表示首次扫描，1 表示向下扫描，2 表示向上扫描
+            minX: Int,
+            maxX: Int,
+            surfaceHeight: Int
         ) {
-            
+
+            if (isSameColor(xScanLeft, y)) {
+                while (isSameColor(xScanLeft - 1, y) && minX < xScanLeft) {
+                    xScanLeft--
+                }
+            } else { // 表示种子位于区域边缘轮廓线里，需要反方向扫描
+                while (!isSameColor(++xScanLeft, y) && xScanLeft < xScanRight) {
+                }
+            }
+            fillBuffer = insertPointToBuffer(
+                xScanLeft.toFloat(),
+                surfaceHeight - y.toFloat(),
+                fillCount++,
+                fillBuffer
+            )
+
+            if (isSameColor(xScanRight, y)) {
+                while (isSameColor(xScanRight + 1, y) && xScanRight < maxX) {
+                    xScanRight++
+                }
+            } else { // 表示种子位于区域边缘轮廓线里，需要反方向扫描
+                while (!isSameColor(--xScanRight, y) && xScanLeft < xScanRight) {
+                }
+            }
+            fillBuffer = insertPointToBuffer(
+                xScanRight.toFloat(),
+                surfaceHeight - y.toFloat(),
+                fillCount++,
+                fillBuffer
+            )
         }
 
         private fun isSameColor(x: Int, y: Int): Boolean {
             GLES20.glReadPixels(x, y, 1, 1, GLES20.GL_RGB, GLES20.GL_FLOAT, pixel)
             pixel.position(0)
+            readPixelCount++
             return (color[0] == pixel.get(0) &&
                     color[1] == pixel.get(1) &&
                     color[2] == pixel.get(2))
