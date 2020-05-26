@@ -18,4 +18,5 @@
     <string name="string_chapters10">10、贝塞尔曲线</string>
     <string name="string_chapters11">11、文本渲染</string>
     <string name="string_toy01">玩具01</string>
+    <string name="string_toy02">玩具02</string>
 </resources>
