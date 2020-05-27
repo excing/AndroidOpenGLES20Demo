@@ -6,6 +6,9 @@ import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.view.MotionEvent
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import me.excq.androidopengles20demo.BaseActivity
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -49,6 +52,21 @@ class MainActivity : BaseActivity() {
         changedMenu1Status()
     }
 
+    override fun onResume() {
+        super.onResume()
+        glView.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        glView.onPause()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        renderer.onDestroy()
+    }
+
     override fun onMenu1Click() {
         changedMenu1Status()
     }
@@ -82,7 +100,8 @@ class MainActivity : BaseActivity() {
     class MyRenderer(val assets: AssetManager) : GLSurfaceView.Renderer {
         private lateinit var shader: Shader
 
-        private var mPositionHandle: Int = 0
+        private var mPositionHandle: Int = -1
+        private var mPointSizeHandle: Int = -1
 
         private var vbo: IntBuffer? = null
 
@@ -95,7 +114,7 @@ class MainActivity : BaseActivity() {
         private var action: Int = MotionEvent.ACTION_UP
         private var lastPoint = PointF()
         private var currPoint = PointF()
-        private var div: Int = 1  // 插值距离
+        private var div: Int = 4  // 插值距离
         private var vertexBuffer =
             ByteBuffer.allocateDirect(1024 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
         private var vertexCount = 0
@@ -103,15 +122,34 @@ class MainActivity : BaseActivity() {
         /**
          * 填充功能变量
          */
-        private val pixel =
-            ByteBuffer.allocateDirect(3 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-        private val color = FloatArray(3)
+        private val pixel = ByteBuffer.allocate(3)
+        private val color = ByteArray(3)
         private var xScanLeft = 0
         private var xScanRight = 0
         private var fillBuffer =
             ByteBuffer.allocateDirect(1024 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
         private var fillCount = 0
         private var readPixelCount = 0
+
+        private var on = true
+        private var latestFrameCount = 0
+        private var lastFrameCount = 0
+        init {
+            GlobalScope.launch {
+                while (on) {
+                    delay(1000)
+                    println("frameTime: ${latestFrameCount - lastFrameCount}")
+                    lastFrameCount = latestFrameCount
+                }
+            }
+        }
+
+        fun onDestroy() {
+            on = false
+            resetPointerBuffer()
+            GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, vbo!![0])
+            GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, vbo!![1])
+        }
 
         fun onTouch(action: Int, x: Float, y: Float): Boolean {
             this.action = action
@@ -160,7 +198,9 @@ class MainActivity : BaseActivity() {
 
             shader.use()
 
-            if (0 <= vertexCount) {
+            GLES20.glUniform1f(mPointSizeHandle, div.toFloat())
+
+            if (0 < vertexCount) {
 
                 // 开始画笔绘制 ---------------------------------
 
@@ -190,7 +230,7 @@ class MainActivity : BaseActivity() {
                 GLES20.glDisableVertexAttribArray(mPositionHandle)
             }
 
-            if (0 <= fillCount) {
+            if (0 < fillCount) {
 
                 // 开始填充绘制 ----------------------------------
 
@@ -219,6 +259,8 @@ class MainActivity : BaseActivity() {
                 )
                 GLES20.glDisableVertexAttribArray(mPositionHandle)
             }
+
+            latestFrameCount++
         }
 
         private fun initRenderer() {
@@ -229,6 +271,7 @@ class MainActivity : BaseActivity() {
                 )
 
                 mPositionHandle = shader.getAttribLocation("vPosition")
+                mPointSizeHandle = shader.getUniformLocation("vPointSize")
             }
 
             if (null == vbo) {
@@ -241,6 +284,9 @@ class MainActivity : BaseActivity() {
 
         private fun updateFillArea() {
             if (MotionEvent.ACTION_DOWN != action) return
+            action = MotionEvent.ACTION_CANCEL
+
+            val timeStart = System.currentTimeMillis()
 
             // ----------------------- 扫描线种子填充算法 ----------------------------
             // glReadPixels 方法里的 x, y 以左下角为原点，
@@ -258,12 +304,14 @@ class MainActivity : BaseActivity() {
             val x = currPoint.x.toInt()
             val y = (surfaceHeight - currPoint.y).toInt()
 
-            GLES20.glReadPixels(x, y, 1, 1, GLES20.GL_RGB, GLES20.GL_FLOAT, pixel)
+            GLES20.glReadPixels(x, y, 1, 1, GLES20.GL_RGB, GLES20.GL_UNSIGNED_BYTE, pixel)
             pixel.position(0)
 
             color[0] = pixel.get(0)
             color[1] = pixel.get(1)
             color[2] = pixel.get(2)
+
+            println("updateFillArea00 ${pixel.get(0).toUByte()}, ${pixel.get(1).toUByte()}, ${pixel.get(2).toUByte()}")
 
             var xLeft = x
             var xRight = x
@@ -292,7 +340,7 @@ class MainActivity : BaseActivity() {
                 fillBuffer
             )
 
-            println("updateFillArea01 $readPixelCount, $xLeft, $xRight")
+            println("updateFillArea01 $readPixelCount, $xLeft, $xRight, $y")
             readPixelCount = 0
 
             // 两个种子分别向上和向下扫描
@@ -301,66 +349,69 @@ class MainActivity : BaseActivity() {
             xScanLeft = xLeft
             xScanRight = xRight
 
-            while (xScanLeft <= xScanRight && yUp < surfaceHeight) {
-                yUp++
-                scanLine(yUp, 0, surfaceWidth.toInt(), surfaceHeight.toInt())
+            while (xScanLeft < xScanRight && yUp < surfaceHeight) {
+                scanLine(yUp + 1, yUp + div, 0, surfaceWidth.toInt(), surfaceHeight.toInt())
+                yUp += div
             }
 
-            println("updateFillArea02 $readPixelCount, $xLeft, $xRight, $xScanLeft, $xScanRight")
+            println("updateFillArea02 $readPixelCount, $xScanLeft, $xScanRight, $yUp")
             readPixelCount = 0
 
             var yDown = y
             xScanLeft = xLeft
             xScanRight = xRight
 
-            while (xScanLeft <= xScanRight && 0 < yDown) {
-                yDown--
-                scanLine(yDown, 0, surfaceWidth.toInt(), surfaceHeight.toInt())
+            while (xScanLeft < xScanRight && 0 < yDown) {
+                scanLine(yDown - 1, yDown - div, 0, surfaceWidth.toInt(), surfaceHeight.toInt())
+                yDown -= div
             }
 
-            println("updateFillArea03 $readPixelCount, $xLeft, $xRight, $xScanLeft, $xScanRight")
+            println("updateFillArea03 $readPixelCount, $xScanLeft, $xScanRight, $yDown")
+            println("updateFillArea04 run time is ${System.currentTimeMillis() - timeStart}")
         }
 
         private fun scanLine(
+            yStart: Int,
             y: Int,
             minX: Int,
             maxX: Int,
             surfaceHeight: Int
         ) {
-
             if (isSameColor(xScanLeft, y)) {
-                while (isSameColor(xScanLeft - 1, y) && minX < xScanLeft) {
+                while (minX < xScanLeft && isSameColor(xScanLeft - 1, y)) {
                     xScanLeft--
                 }
             } else { // 表示种子位于区域边缘轮廓线里，需要反方向扫描
-                while (!isSameColor(++xScanLeft, y) && xScanLeft < xScanRight) {
+                while (xScanLeft < xScanRight && !isSameColor(++xScanLeft, y)) {
                 }
             }
-            fillBuffer = insertPointToBuffer(
-                xScanLeft.toFloat(),
-                surfaceHeight - y.toFloat(),
-                fillCount++,
-                fillBuffer
-            )
 
             if (isSameColor(xScanRight, y)) {
-                while (isSameColor(xScanRight + 1, y) && xScanRight < maxX) {
+                while (xScanRight < maxX && isSameColor(xScanRight + 1, y)) {
                     xScanRight++
                 }
             } else { // 表示种子位于区域边缘轮廓线里，需要反方向扫描
-                while (!isSameColor(--xScanRight, y) && xScanLeft < xScanRight) {
+                while (xScanLeft < xScanRight && !isSameColor(--xScanRight, y)) {
                 }
             }
-            fillBuffer = insertPointToBuffer(
-                xScanRight.toFloat(),
-                surfaceHeight - y.toFloat(),
-                fillCount++,
-                fillBuffer
-            )
+            for (i in min(yStart, y)..max(yStart, y)) {
+                fillBuffer = insertPointToBuffer(
+                    xScanLeft.toFloat(),
+                    surfaceHeight - i.toFloat(),
+                    fillCount++,
+                    fillBuffer
+                )
+                fillBuffer = insertPointToBuffer(
+                    xScanRight.toFloat(),
+                    surfaceHeight - i.toFloat(),
+                    fillCount++,
+                    fillBuffer
+                )
+            }
         }
 
         private fun isSameColor(x: Int, y: Int): Boolean {
-            GLES20.glReadPixels(x, y, 1, 1, GLES20.GL_RGB, GLES20.GL_FLOAT, pixel)
+            GLES20.glReadPixels(x, y, 1, 1, GLES20.GL_RGB, GLES20.GL_UNSIGNED_BYTE, pixel)
             pixel.position(0)
             readPixelCount++
             return (color[0] == pixel.get(0) &&

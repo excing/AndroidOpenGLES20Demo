@@ -1,6 +1,11 @@
 attribute vec2 vPosition;
 
+varying vec3 outColor;
+
+uniform float vPointSize;
+
 void main() {
-    gl_PointSize = 4.0;
+    gl_PointSize = vPointSize;
     gl_Position = vec4(vPosition, 0.0, 1.0);
+    outColor = vec3(vPosition, (vPosition.x + vPosition.y) / 2.0);
 }
