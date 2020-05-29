@@ -114,6 +114,10 @@ class MainActivity : BaseActivity() {
         fun fullCallback(x: Float, y: Float)
     }
 
+    /**
+     * 填充算法实现接口，
+     * 该接口应在 GLThread 线程内调用。
+     */
     interface IFill {
         fun fill(
             x: Int,
@@ -132,6 +136,7 @@ class MainActivity : BaseActivity() {
 
         private var mPositionHandle: Int = -1
         private var mPointSizeHandle: Int = -1
+        private var mColorHandle: Int = -1
 
         private var vbo: IntBuffer? = null
 
@@ -225,6 +230,8 @@ class MainActivity : BaseActivity() {
 
                 // 开始画笔绘制 ---------------------------------
 
+                GLES20.glUniform3f(mColorHandle, 0.0f, 0.0f, 0.0f)
+
                 vertexBuffer.position(0)
                 GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, vbo!![0])
                 GLES20.glBufferData(
@@ -254,6 +261,8 @@ class MainActivity : BaseActivity() {
             if (0 < fillCount) {
 
                 // 开始填充绘制 ----------------------------------
+
+                GLES20.glUniform3f(mColorHandle, 1.0f, 0.5f, 0.3f)
 
                 fillBuffer.position(0)
                 GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, vbo!![1])
@@ -293,6 +302,7 @@ class MainActivity : BaseActivity() {
 
                 mPositionHandle = shader.getAttribLocation("vPosition")
                 mPointSizeHandle = shader.getUniformLocation("vPointSize")
+                mColorHandle = shader.getUniformLocation("vColor")
             }
 
             if (null == vbo) {

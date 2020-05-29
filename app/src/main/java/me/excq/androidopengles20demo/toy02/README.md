@@ -101,13 +101,13 @@ private fun isSameColor(x: Int, y: Int): Boolean {
 }
 ```
 
-`xLeft` 和 `xRight` 即为第一线扫描线的起点和终点。
+`xLeft` 和 `xRight` 即为第一条扫描线的起点和终点。
 
 ### 完整的代码
 
 获取到第一条扫描线后，将这条扫描线分别向上和向下继续扫描，即可。
 
-完整的代码参见 [MainActivity](https://github.com/excing/AndroidOpenGLES20Demo/blob/master/app/src/main/java/me/excq/androidopengles20demo/toy02/MainActivity.kt)
+完整的代码参见 [Fill01](https://github.com/excing/AndroidOpenGLES20Demo/blob/master/app/src/main/java/me/excq/androidopengles20demo/toy02/Fill01.kt)
 
 该实现仅支持对凸边形的填充，暂不支持对其他形状的闭合区域进行填充。
 
@@ -115,3 +115,6 @@ private fun isSameColor(x: Int, y: Int): Boolean {
 
 todo 任意形状填充，明天做吧，今天做不完了，对了，现在的实现，在轮廓边缘会出现大量的空白，也要解决，晚安。
 
+todo 画笔轮廓边缘填充有些许进步，但未有明显改变。
+
+todo 今天把动态规划粗略的了解了一下，把正则匹配实现了，另一个 todo 画笔轮廓边缘填充依然没有进度，在 stackoverflow 上提问了。今天就先这样吧，晚安。
