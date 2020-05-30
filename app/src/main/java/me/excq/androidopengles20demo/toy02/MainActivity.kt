@@ -1,6 +1,8 @@
 package me.excq.androidopengles20demo.toy02
 
 import android.content.res.AssetManager
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.PointF
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
@@ -11,10 +13,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.excq.androidopengles20demo.BaseActivity
 import me.excq.androidopengles20demo.WebActivity
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.FloatBuffer
-import java.nio.IntBuffer
+import java.io.File
+import java.io.FileOutputStream
+import java.nio.*
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.*
@@ -37,6 +38,11 @@ class MainActivity : BaseActivity() {
     private lateinit var renderer: MyRenderer
 
     private var menu1Status = 0
+    private val spinnerData = arrayOf(
+        "01",
+        "02",
+        "Save"
+    )
 
     private lateinit var iFillList: Array<IFill>
 
@@ -65,14 +71,15 @@ class MainActivity : BaseActivity() {
     }
 
     override fun getSpinnerData(): Array<String> {
-        return arrayOf(
-            "01",
-            "02"
-        )
+        return spinnerData
     }
 
     override fun onSpinnerSelected(position: Int) {
-        renderer.iFill = iFillList[position]
+        if (position == spinnerData.size - 1) {
+            renderer.onSave(File(filesDir, "${System.currentTimeMillis()}.jpeg").absolutePath)
+        } else {
+            renderer.iFill = iFillList[position]
+        }
     }
 
     override fun onResume() {
@@ -165,6 +172,12 @@ class MainActivity : BaseActivity() {
         private var latestFrameCount = 0
         private var lastFrameCount = 0
 
+        /**
+         * 保存
+         */
+        private var isSave = false
+        private var savePath: String = ""
+
         init {
             GlobalScope.launch {
                 while (on) {
@@ -199,6 +212,40 @@ class MainActivity : BaseActivity() {
             option = status
         }
 
+        fun onSave(path: String) {
+            isSave = true
+            savePath = path
+        }
+
+        private fun save() {
+            isSave = false
+
+            val w = mSurfaceSize.x.toInt() * 2
+            val h = mSurfaceSize.y.toInt() * 2
+            val screenshotSize = w * h
+
+            val pixels = IntBuffer.allocate(screenshotSize)
+            GLES20.glReadPixels(0, 0, w, h, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, pixels)
+
+            GlobalScope.launch {
+                val buffer = IntBuffer.allocate(screenshotSize)
+
+                for (i in 0 until h) {
+                    for (j in 0 until w) {
+                        buffer.put((h - i - 1) * w + j, pixels.get(i * w + j));
+                    }
+                }
+
+                val config = Bitmap.Config.ARGB_8888
+                val bitmap = Bitmap.createBitmap(w, h, config)
+                bitmap.eraseColor(Color.argb(0, 255, 255, 255))
+                bitmap.copyPixelsFromBuffer(buffer)
+
+                val out = FileOutputStream(savePath)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
+            }
+        }
+
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         }
 
@@ -216,6 +263,8 @@ class MainActivity : BaseActivity() {
                 1 -> updateFillArea()
                 else -> resetPointerBuffer()
             }
+
+            if (isSave) save()
 
             lastPoint.set(currPoint)
 
